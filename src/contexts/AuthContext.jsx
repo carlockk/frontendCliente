@@ -3,10 +3,11 @@ import axios from "axios";
 
 const AuthContext = createContext();
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // Cargar usuario desde localStorage al iniciar
   useEffect(() => {
     const savedUser = JSON.parse(localStorage.getItem("user"));
     if (savedUser) {
@@ -15,10 +16,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Login
   const login = async (email, password) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/clientes/login", {
+      const res = await axios.post(`${API_URL}/clientes/login`, {
         email,
         password,
       });
@@ -28,8 +28,6 @@ export const AuthProvider = ({ children }) => {
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
-
-      // 🛡️ Setear token globalmente
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       return { success: true };
@@ -39,17 +37,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Registro
   const register = async (nuevoUsuario) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/clientes/register", nuevoUsuario);
+      const res = await axios.post(`${API_URL}/clientes/register`, nuevoUsuario);
       const { cliente, token } = res.data;
 
       const userData = { ...cliente, token };
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
-
-      // 🛡️ Setear token globalmente
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       alert("Registro exitoso");
