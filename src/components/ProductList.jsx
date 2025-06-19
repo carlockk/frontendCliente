@@ -25,7 +25,7 @@ const ProductList = () => {
   }, []);
 
   useEffect(() => {
-    console.log("✅ VITE_API_URL es:", import.meta.env.VITE_API_URL);
+    //console.log("✅ VITE_API_URL es:", import.meta.env.VITE_API_URL); //Aqui arregle para ver los productos y si se llamaba la url correcta
     if (isLogged) {
       const guardados = localStorage.getItem(`favoritos_${user._id}`);
       setFavoritos(guardados ? JSON.parse(guardados) : []);
