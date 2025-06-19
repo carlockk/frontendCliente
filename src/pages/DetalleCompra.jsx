@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
+import api from \"../api\";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const DetalleCompra = () => {
@@ -13,7 +12,7 @@ const DetalleCompra = () => {
     const obtenerDetalle = async () => {
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await axios.get(`${API_URL}/ventasCliente/${id}`, {
+        const res = await api.get(`${API_URL}/ventasCliente/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

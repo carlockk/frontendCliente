@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from \"../api\";
 import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import SidebarFiltros from "../components/SidebarFiltros";
@@ -16,7 +16,7 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const res = await axios.get(`${API_URL}/productos`);
+        const res = await api.get(`${API_URL}/productos`);
         setProductos(res.data);
         setFiltrados(res.data);
       } catch (err) {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-
+import api from \"../api\";
 const SidebarFiltros = ({ onFiltrar }) => {
   const [categorias, setCategorias] = useState([]);
   const [precioMin, setPrecioMin] = useState("");
@@ -13,7 +12,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/categorias");
+        const res = await api.get("http://localhost:5000/api/categorias");
         setCategorias(res.data);
       } catch (error) {
         console.error("Error al cargar categorías:", error);

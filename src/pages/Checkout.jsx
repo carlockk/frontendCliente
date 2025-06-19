@@ -1,6 +1,6 @@
 import { useCart } from "../contexts/cart/CartContext";
+import api from \"../api\";
 import { useState } from "react";
-import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -67,7 +67,7 @@ const Checkout = () => {
 
       const total = productos.reduce((sum, p) => sum + p.subtotal, 0);
 
-      const res = await axios.post(`${API_URL}/ventasCliente`, {
+      const res = await api.post(`${API_URL}/ventasCliente`, {
         productos,
         total,
         tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
