@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import api from \"../api\";
+import api from "../api";
+
 const SidebarFiltros = ({ onFiltrar }) => {
   const [categorias, setCategorias] = useState([]);
   const [precioMin, setPrecioMin] = useState("");
@@ -12,12 +13,13 @@ const SidebarFiltros = ({ onFiltrar }) => {
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
-        const res = await api.get("http://localhost:5000/api/categorias");
+        const res = await api.get("/categorias");
         setCategorias(res.data);
       } catch (error) {
         console.error("Error al cargar categorías:", error);
       }
     };
+
     fetchCategorias();
 
     const vistos = localStorage.getItem("productos_vistos");
@@ -38,7 +40,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
     setPrecioMax("");
     setBusqueda("");
     setMostrarFavoritos(false);
-    onFiltrar({}); // limpia desde el padre también
+    onFiltrar({});
   };
 
   useEffect(() => {
@@ -70,9 +72,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
       {/* Barra lateral escritorio */}
       <div className="hidden md:block fixed right-0 top-[80px] bottom-[105px] w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
-        <div className="p-4 space-y-6">
-          {renderSidebarContent()}
-        </div>
+        <div className="p-4 space-y-6">{renderSidebarContent()}</div>
       </div>
     </>
   );

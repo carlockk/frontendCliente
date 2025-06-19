@@ -1,8 +1,6 @@
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+import api from "../api";
 
 const Perfil = () => {
   const { user, logout } = useAuth();
@@ -15,7 +13,7 @@ const Perfil = () => {
     const fetchPerfil = async () => {
       try {
         const token = user?.token || JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await axios.get(`${API_URL}/clientes/perfil`, {
+        const res = await api.get("/clientes/perfil", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -37,7 +35,7 @@ const Perfil = () => {
   const handleGuardar = async () => {
     try {
       const token = user?.token || JSON.parse(localStorage.getItem("user"))?.token;
-      await axios.put(`${API_URL}/clientes/perfil`, form, {
+      await api.put("/clientes/perfil", form, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

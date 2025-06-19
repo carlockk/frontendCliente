@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import api from \"../api\";
+import api from "../api";
 import { useParams } from "react-router-dom";
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const DetalleCompra = () => {
   const { id } = useParams();
@@ -12,7 +11,7 @@ const DetalleCompra = () => {
     const obtenerDetalle = async () => {
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await api.get(`${API_URL}/ventasCliente/${id}`, {
+        const res = await api.get(`/ventasCliente/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -53,7 +52,9 @@ const DetalleCompra = () => {
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded shadow">
       <div ref={ticketRef}>
-        <h2 className="text-2xl font-bold mb-4">🧾 Detalle de Compra #{venta.numero_pedido || venta._id.slice(-5)}</h2>
+        <h2 className="text-2xl font-bold mb-4">
+          🧾 Detalle de Compra #{venta.numero_pedido || venta._id.slice(-5)}
+        </h2>
         <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
         <p><strong>Pago:</strong> {venta.tipo_pago}</p>
 

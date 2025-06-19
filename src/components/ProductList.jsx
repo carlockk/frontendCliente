@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import api from \"../api\";
+import api from "../api";
 import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import SidebarFiltros from "../components/SidebarFiltros";
-
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const ProductList = () => {
   const [productos, setProductos] = useState([]);
@@ -16,7 +14,7 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const res = await api.get(`${API_URL}/productos`);
+        const res = await api.get("/productos");
         setProductos(res.data);
         setFiltrados(res.data);
       } catch (err) {

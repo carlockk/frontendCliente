@@ -1,10 +1,8 @@
 import { useCart } from "../contexts/cart/CartContext";
-import api from \"../api\";
+import api from "../api";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -67,7 +65,7 @@ const Checkout = () => {
 
       const total = productos.reduce((sum, p) => sum + p.subtotal, 0);
 
-      const res = await api.post(`${API_URL}/ventasCliente`, {
+      const res = await api.post("/ventasCliente", {
         productos,
         total,
         tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,

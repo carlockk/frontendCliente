@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+import api from "../api";
 
 const Compras = () => {
   const { user } = useAuth();
@@ -15,7 +13,7 @@ const Compras = () => {
       if (!user || !user.token) return;
 
       try {
-        const res = await axios.get(`${API_URL}/ventasCliente`, {
+        const res = await api.get("/ventasCliente", {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
