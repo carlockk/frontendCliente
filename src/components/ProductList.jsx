@@ -25,6 +25,7 @@ const ProductList = () => {
   }, []);
 
   useEffect(() => {
+    console.log("✅ VITE_API_URL es:", import.meta.env.VITE_API_URL);
     if (isLogged) {
       const guardados = localStorage.getItem(`favoritos_${user._id}`);
       setFavoritos(guardados ? JSON.parse(guardados) : []);
