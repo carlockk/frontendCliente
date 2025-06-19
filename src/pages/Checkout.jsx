@@ -1,9 +1,10 @@
-// ... tus imports
 import { useCart } from "../contexts/cart/CartContext";
 import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -66,7 +67,7 @@ const Checkout = () => {
 
       const total = productos.reduce((sum, p) => sum + p.subtotal, 0);
 
-      const res = await axios.post("http://localhost:5000/api/ventasCliente", {
+      const res = await axios.post(`${API_URL}/ventasCliente`, {
         productos,
         total,
         tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
@@ -89,8 +90,12 @@ const Checkout = () => {
 
       {state.items.map((item) => (
         <div key={item._id} className="flex justify-between border-b py-2">
-          <span>{item.nombre} x {item.quantity}</span>
-          <span>${(item.precio * item.quantity).toLocaleString("es-CL")}</span>
+          <span>
+            {item.nombre} x {item.quantity}
+          </span>
+          <span>
+            ${((item.precio ?? item.price ?? 0) * item.quantity).toLocaleString("es-CL")}
+          </span>
         </div>
       ))}
 

@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
 const DetalleCompra = () => {
   const { id } = useParams();
   const [venta, setVenta] = useState(null);
@@ -11,7 +13,7 @@ const DetalleCompra = () => {
     const obtenerDetalle = async () => {
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await axios.get(`http://localhost:5000/api/ventasCliente/${id}`, {
+        const res = await axios.get(`${API_URL}/ventasCliente/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -21,6 +23,7 @@ const DetalleCompra = () => {
         console.error("Error al cargar detalle:", err);
       }
     };
+
     obtenerDetalle();
   }, [id]);
 
@@ -51,7 +54,7 @@ const DetalleCompra = () => {
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded shadow">
       <div ref={ticketRef}>
-        <h2 className="text-2xl font-bold mb-4">🧾 Detalle de Compra #{venta.numero_pedido}</h2>
+        <h2 className="text-2xl font-bold mb-4">🧾 Detalle de Compra #{venta.numero_pedido || venta._id.slice(-5)}</h2>
         <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
         <p><strong>Pago:</strong> {venta.tipo_pago}</p>
 

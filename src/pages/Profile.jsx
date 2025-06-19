@@ -2,6 +2,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
 const Perfil = () => {
   const { user, logout } = useAuth();
   const [form, setForm] = useState({ nombre: "", email: "", direccion: "", telefono: "" });
@@ -12,14 +14,21 @@ const Perfil = () => {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/clientes/perfil");
+        const token = user?.token || JSON.parse(localStorage.getItem("user"))?.token;
+        const res = await axios.get(`${API_URL}/clientes/perfil`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setForm(res.data);
       } catch (err) {
+        console.error("Error al obtener perfil:", err);
         setError("No se pudo cargar el perfil.");
       }
     };
+
     fetchPerfil();
-  }, []);
+  }, [user]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,10 +36,16 @@ const Perfil = () => {
 
   const handleGuardar = async () => {
     try {
-      await axios.put("http://localhost:5000/api/clientes/perfil", form);
+      const token = user?.token || JSON.parse(localStorage.getItem("user"))?.token;
+      await axios.put(`${API_URL}/clientes/perfil`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setMensaje("Perfil actualizado correctamente.");
       setModoEdicion(false);
     } catch (err) {
+      console.error("Error al actualizar perfil:", err);
       setError("Error al actualizar el perfil.");
     }
   };
@@ -63,7 +78,6 @@ const Perfil = () => {
           type="email"
           name="email"
           value={form.email}
-          onChange={handleChange}
           disabled
           className="w-full border px-3 py-2 rounded bg-gray-100"
         />

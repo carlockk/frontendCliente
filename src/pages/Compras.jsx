@@ -3,6 +3,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
 const Compras = () => {
   const { user } = useAuth();
   const [ventas, setVentas] = useState([]);
@@ -10,15 +12,22 @@ const Compras = () => {
 
   useEffect(() => {
     const cargarVentas = async () => {
+      if (!user || !user.token) return;
+
       try {
-        const res = await axios.get("http://localhost:5000/api/ventasCliente");
+        const res = await axios.get(`${API_URL}/ventasCliente`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
         setVentas(res.data);
       } catch (err) {
         console.error("Error al cargar historial:", err);
       }
     };
+
     cargarVentas();
-  }, []);
+  }, [user]);
 
   if (!user) return <p className="text-center mt-10">Inicia sesión para ver tus compras.</p>;
 
@@ -42,9 +51,9 @@ const Compras = () => {
           <tbody>
             {ventas.map((venta) => (
               <tr key={venta._id} className="border-b hover:bg-gray-50">
-                <td className="py-2">{venta.numero_pedido}</td>
+                <td className="py-2">{venta.numero_pedido || venta._id.slice(-5)}</td>
                 <td>{new Date(venta.fecha).toLocaleString()}</td>
-                <td>${venta.total}</td>
+                <td>${venta.total?.toLocaleString("es-CL")}</td>
                 <td>{venta.tipo_pago}</td>
                 <td>
                   <button
