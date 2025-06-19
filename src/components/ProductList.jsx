@@ -4,6 +4,8 @@ import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import SidebarFiltros from "../components/SidebarFiltros";
 
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+
 const ProductList = () => {
   const [productos, setProductos] = useState([]);
   const [filtrados, setFiltrados] = useState([]);
@@ -14,7 +16,7 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/productos");
+        const res = await axios.get(`${API_URL}/productos`);
         setProductos(res.data);
         setFiltrados(res.data);
       } catch (err) {
@@ -51,7 +53,6 @@ const ProductList = () => {
     setFavoritos(nuevos);
     localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
 
-    // Guardar en productos vistos
     let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
     vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
     localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
@@ -92,7 +93,6 @@ const ProductList = () => {
                 key={producto._id}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 flex flex-col relative"
               >
-                {/* Corazón */}
                 <button
                   onClick={() => toggleFavorito(producto)}
                   title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -103,7 +103,6 @@ const ProductList = () => {
                   <i className="fas fa-heart text-sm"></i>
                 </button>
 
-                {/* Imagen */}
                 {producto.imagen_url && (
                   <img
                     src={producto.imagen_url}
@@ -112,7 +111,6 @@ const ProductList = () => {
                   />
                 )}
 
-                {/* Info */}
                 <h2 className="font-semibold text-sm mb-1">{producto.nombre}</h2>
                 <p
                   className="text-xs text-gray-500 mb-2 truncate"
