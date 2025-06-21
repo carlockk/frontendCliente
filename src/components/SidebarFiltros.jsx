@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api";
 
-const SidebarFiltros = ({ onFiltrar, scrollToCategoria }) => {
+const SidebarFiltros = ({ onFiltrar }) => {
   const [categorias, setCategorias] = useState([]);
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
@@ -26,12 +26,22 @@ const SidebarFiltros = ({ onFiltrar, scrollToCategoria }) => {
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
   }, []);
 
-  const aplicarFiltros = () => {
+  useEffect(() => {
     onFiltrar({
       precioMin,
       precioMax,
       busqueda,
       mostrarFavoritos,
+    });
+  }, [precioMin, precioMax, busqueda, mostrarFavoritos, onFiltrar]);
+
+  const handleCategoria = (catNombre) => {
+    onFiltrar({
+      precioMin,
+      precioMax,
+      busqueda,
+      mostrarFavoritos,
+      categoria: catNombre,
     });
   };
 
@@ -41,15 +51,6 @@ const SidebarFiltros = ({ onFiltrar, scrollToCategoria }) => {
     setBusqueda("");
     setMostrarFavoritos(false);
     onFiltrar({});
-  };
-
-  useEffect(() => {
-    aplicarFiltros();
-  }, [precioMin, precioMax, busqueda, mostrarFavoritos]);
-
-  const handleCategoriaClick = (nombre) => {
-    scrollToCategoria(nombre);
-    setMostrarMobile(false); // cerrar en móvil
   };
 
   return (
@@ -105,7 +106,7 @@ const SidebarFiltros = ({ onFiltrar, scrollToCategoria }) => {
               <li
                 key={cat._id}
                 className="cursor-pointer text-gray-600 hover:text-blue-600"
-                onClick={() => handleCategoriaClick(cat.nombre)}
+                onClick={() => handleCategoria(cat.nombre)}
               >
                 {cat.nombre}
               </li>
