@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import api from "../api";
 import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -10,17 +10,14 @@ const ProductList = () => {
   const { dispatch } = useCart();
   const { isLogged, user } = useAuth();
   const [favoritos, setFavoritos] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const productosPorPagina = 20;
-  const topRef = useRef();
+  const [filtros, setFiltros] = useState({});
 
   useEffect(() => {
     const fetchProductos = async () => {
       try {
         const res = await api.get("/productos");
-        const ordenados = res.data.sort(
-          (a, b) => new Date(b.creado_en) - new Date(a.creado_en)
-        );
+        // Ordenar descendente por fecha de creación
+        const ordenados = res.data.sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
         setProductos(ordenados);
         setFiltrados(ordenados);
       } catch (err) {
@@ -40,8 +37,23 @@ const ProductList = () => {
   }, [isLogged, user]);
 
   useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [paginaActual]);
+    aplicarFiltros();
+  }, [filtros, productos, favoritos]);
+
+  const aplicarFiltros = () => {
+    let resultado = [...productos];
+    const { precioMin, precioMax, busqueda, mostrarFavoritos, categoria } = filtros;
+
+    if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
+    if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
+    if (busqueda) resultado = resultado.filter((p) =>
+      p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    );
+    if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
+    if (categoria) resultado = resultado.filter((p) => p.categoria === categoria);
+
+    setFiltrados(resultado);
+  };
 
   const agregarAlCarrito = (producto) => {
     dispatch({ type: "ADD_ITEM", payload: producto });
@@ -60,59 +72,38 @@ const ProductList = () => {
 
     setFavoritos(nuevos);
     localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
+
     let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
     vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
     localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
   };
 
-  const aplicarFiltros = ({ precioMin, precioMax, busqueda, mostrarFavoritos, categoria }) => {
-    let resultado = [...productos];
-    if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
-    if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
-    if (busqueda) resultado = resultado.filter((p) =>
-      p.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    );
-    if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
-    if (categoria) resultado = resultado.filter((p) => p.categoria === categoria);
-
-    setPaginaActual(1);
-    setFiltrados(resultado);
-  };
-
-  const totalPaginas = Math.ceil(filtrados.length / productosPorPagina);
-  const productosPaginados = filtrados.slice(
-    (paginaActual - 1) * productosPorPagina,
-    paginaActual * productosPorPagina
-  );
-
-  const productosPorCategoria = productosPaginados.reduce((acc, prod) => {
-    const cat = prod.categoria?.nombre || "sin_categoria";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(prod);
+  // Agrupar por categoría
+  const agrupados = filtrados.reduce((acc, producto) => {
+    const categoria = producto.categoria || "SIN_CATEGORIA";
+    if (!acc[categoria]) acc[categoria] = [];
+    acc[categoria].push(producto);
     return acc;
   }, {});
 
   return (
-    <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
+    <div className="max-w-7xl mx-auto px-0 py-0">
       <h1 className="text-3xl font-bold text-gray-700 mb-6 px-4 pt-6 flex items-center gap-2">
         🧾 Menú disponible
       </h1>
 
       <div className="flex-1 pr-0 md:pr-64">
-        {Object.entries(productosPorCategoria).map(([categoria, productos]) => (
-          <div key={categoria} className="mb-10">
-            {categoria !== "sin_categoria" && (
-              <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
-                {categoria}
-              </h2>
+        {Object.entries(agrupados).map(([categoria, productos]) => (
+          <div key={categoria} className="mb-10 px-4">
+            {categoria !== "SIN_CATEGORIA" && (
+              <h2 className="text-xl font-semibold text-gray-600 mb-4">{categoria}</h2>
             )}
-            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 px-4">
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {productos.map((producto) => {
                 const descripcionCorta =
                   producto.descripcion?.length > 50
                     ? producto.descripcion.slice(0, 50) + "..."
                     : producto.descripcion;
-
                 const esFavorito = favoritos.includes(producto._id);
 
                 return (
@@ -139,7 +130,10 @@ const ProductList = () => {
                     )}
 
                     <h2 className="font-semibold text-sm mb-1">{producto.nombre}</h2>
-                    <p className="text-xs text-gray-500 mb-2 truncate" title={producto.descripcion}>
+                    <p
+                      className="text-xs text-gray-500 mb-2 truncate"
+                      title={producto.descripcion}
+                    >
                       {descripcionCorta}
                     </p>
                     <p className="text-sm font-semibold text-green-600 mb-3">
@@ -159,48 +153,7 @@ const ProductList = () => {
           </div>
         ))}
 
-        {/* PAGINACIÓN MEJORADA */}
-        <div className="flex justify-center items-center gap-2 py-6 flex-wrap">
-          <button
-            onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-            disabled={paginaActual === 1}
-            className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          >
-            « Anterior
-          </button>
-
-          {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-            .filter((num) =>
-              num === 1 ||
-              num === totalPaginas ||
-              Math.abs(paginaActual - num) <= 2
-            )
-            .map((num, idx, arr) => (
-              <span key={num}>
-                {idx > 0 && num - arr[idx - 1] > 1 && <span className="px-1">...</span>}
-                <button
-                  onClick={() => setPaginaActual(num)}
-                  className={`px-3 py-1 rounded transition ${
-                    paginaActual === num
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {num}
-                </button>
-              </span>
-            ))}
-
-          <button
-            onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-            disabled={paginaActual === totalPaginas}
-            className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          >
-            Siguiente »
-          </button>
-        </div>
-
-        <SidebarFiltros onFiltrar={aplicarFiltros} />
+        <SidebarFiltros onFiltrar={setFiltros} />
       </div>
     </div>
   );
