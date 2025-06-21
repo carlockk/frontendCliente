@@ -35,6 +35,16 @@ const SidebarFiltros = ({ onFiltrar }) => {
     });
   };
 
+  const handleCategoria = (catNombre) => {
+    onFiltrar({
+      precioMin,
+      precioMax,
+      busqueda,
+      mostrarFavoritos,
+      categoria: catNombre,
+    });
+  };
+
   const limpiarFiltros = () => {
     setPrecioMin("");
     setPrecioMax("");
@@ -100,7 +110,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
               <li
                 key={cat._id}
                 className="cursor-pointer text-gray-600 hover:text-blue-600"
-                onClick={() => onFiltrar({ categoria: cat.nombre })}
+                onClick={() => handleCategoria(cat.nombre)}
               >
                 {cat.nombre}
               </li>
