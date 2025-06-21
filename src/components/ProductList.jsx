@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import api from "../api";
 import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -65,6 +65,23 @@ const ProductList = () => {
     localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
   };
 
+  const aplicarFiltros = useCallback(
+    ({ precioMin, precioMax, busqueda, mostrarFavoritos, categoria }) => {
+      let resultado = [...productos];
+      if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
+      if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
+      if (busqueda) resultado = resultado.filter((p) =>
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      );
+      if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
+      if (categoria) resultado = resultado.filter((p) => p.categoria === categoria);
+
+      setPaginaActual(1);
+      setFiltrados(resultado);
+    },
+    [productos, favoritos]
+  );
+
   const totalPaginas = Math.ceil(filtrados.length / productosPorPagina);
   const productosPaginados = filtrados.slice(
     (paginaActual - 1) * productosPorPagina,
@@ -72,18 +89,11 @@ const ProductList = () => {
   );
 
   const productosPorCategoria = productosPaginados.reduce((acc, prod) => {
-    const cat = typeof prod.categoria === "string"
-      ? prod.categoria
-      : prod.categoria?.nombre || "sin_categoria";
+    const cat = prod.categoria?.nombre || "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
     return acc;
   }, {});
-
-  const scrollToCategoria = (nombreCategoria) => {
-    const el = document.getElementById(nombreCategoria);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
@@ -93,7 +103,7 @@ const ProductList = () => {
 
       <div className="flex-1 pr-0 md:pr-64">
         {Object.entries(productosPorCategoria).map(([categoria, productos]) => (
-          <div key={categoria} id={categoria !== "sin_categoria" ? categoria : undefined} className="mb-10">
+          <div key={categoria} className="mb-10">
             {categoria !== "sin_categoria" && (
               <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
                 {categoria}
@@ -164,9 +174,7 @@ const ProductList = () => {
 
           {Array.from({ length: totalPaginas }, (_, i) => i + 1)
             .filter((num) =>
-              num === 1 ||
-              num === totalPaginas ||
-              Math.abs(paginaActual - num) <= 2
+              num === 1 || num === totalPaginas || Math.abs(paginaActual - num) <= 2
             )
             .map((num, idx, arr) => (
               <span key={num}>
@@ -193,7 +201,7 @@ const ProductList = () => {
           </button>
         </div>
 
-        <SidebarFiltros onFiltrar={aplicarFiltros} scrollToCategoria={scrollToCategoria} />
+        <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
     </div>
   );
