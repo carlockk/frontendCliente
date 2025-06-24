@@ -11,7 +11,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const [vistosRecientes, setVistosRecientes] = useState([]);
   const [mostrarMobile, setMostrarMobile] = useState(false);
 
-  // Centraliza el disparo del filtro
   const aplicarFiltros = useCallback(() => {
     onFiltrar({
       precioMin,
@@ -42,8 +41,8 @@ const SidebarFiltros = ({ onFiltrar }) => {
     aplicarFiltros();
   }, [aplicarFiltros]);
 
-  const handleCategoria = (catNombre) => {
-    setCategoriaSeleccionada(catNombre);
+  const handleCategoria = (nombre) => {
+    setCategoriaSeleccionada((prev) => (prev === nombre ? null : nombre));
   };
 
   const limpiarFiltros = () => {
@@ -57,7 +56,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
   return (
     <>
-      {/* Botón móvil */}
       <button
         onClick={() => setMostrarMobile(true)}
         className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
@@ -65,7 +63,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
         Filtros
       </button>
 
-      {/* Drawer móvil */}
       {mostrarMobile && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
           <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
@@ -78,7 +75,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
         </div>
       )}
 
-      {/* Barra lateral escritorio */}
       <div className="hidden md:block fixed right-0 top-[80px] bottom-[105px] w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
         <div className="p-4 space-y-6">{renderSidebarContent()}</div>
       </div>
@@ -88,7 +84,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
   function renderSidebarContent() {
     return (
       <div className="space-y-6 text-sm">
-        {/* Busqueda */}
         <div>
           <h3 className="font-semibold mb-2 text-gray-700">Buscar producto</h3>
           <input
@@ -100,7 +95,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
           />
         </div>
 
-        {/* Categorías */}
         <div>
           <h3 className="font-semibold mb-2 text-gray-700">Categorías</h3>
           <ul className="space-y-1">
@@ -120,7 +114,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
           </ul>
         </div>
 
-        {/* Precio */}
         <div>
           <h3 className="font-semibold mb-2 text-gray-700">Precio</h3>
           <div className="flex gap-2">
@@ -141,7 +134,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
           </div>
         </div>
 
-        {/* Favoritos */}
         <div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -153,7 +145,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
           </label>
         </div>
 
-        {/* Vistos recientemente */}
         {vistosRecientes.length > 0 && (
           <div>
             <h3 className="font-semibold mb-2 text-gray-700">Vistos recientemente</h3>
@@ -179,7 +170,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
           </div>
         )}
 
-        {/* Botón limpiar */}
         <div className="pt-2">
           <button
             onClick={limpiarFiltros}
