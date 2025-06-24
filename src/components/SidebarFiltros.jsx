@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../api";
 
 const SidebarFiltros = ({ onFiltrar }) => {
@@ -7,8 +7,20 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const [precioMax, setPrecioMax] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
   const [vistosRecientes, setVistosRecientes] = useState([]);
   const [mostrarMobile, setMostrarMobile] = useState(false);
+
+  // Centraliza el disparo del filtro
+  const aplicarFiltros = useCallback(() => {
+    onFiltrar({
+      precioMin,
+      precioMax,
+      busqueda,
+      mostrarFavoritos,
+      categoria: categoriaSeleccionada,
+    });
+  }, [precioMin, precioMax, busqueda, mostrarFavoritos, categoriaSeleccionada, onFiltrar]);
 
   useEffect(() => {
     const fetchCategorias = async () => {
@@ -27,22 +39,11 @@ const SidebarFiltros = ({ onFiltrar }) => {
   }, []);
 
   useEffect(() => {
-    onFiltrar({
-      precioMin,
-      precioMax,
-      busqueda,
-      mostrarFavoritos,
-    });
-  }, [precioMin, precioMax, busqueda, mostrarFavoritos, onFiltrar]);
+    aplicarFiltros();
+  }, [aplicarFiltros]);
 
   const handleCategoria = (catNombre) => {
-    onFiltrar({
-      precioMin,
-      precioMax,
-      busqueda,
-      mostrarFavoritos,
-      categoria: catNombre,
-    });
+    setCategoriaSeleccionada(catNombre);
   };
 
   const limpiarFiltros = () => {
@@ -50,6 +51,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
     setPrecioMax("");
     setBusqueda("");
     setMostrarFavoritos(false);
+    setCategoriaSeleccionada(null);
     onFiltrar({});
   };
 
@@ -69,7 +71,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
           <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Filtros</h2>
-              <button onClick={() => setMostrarMobile(false)}>✕</button>
+              <button onClick={() => setMostrarMobile(false)} aria-label="Cerrar">✕</button>
             </div>
             {renderSidebarContent()}
           </div>
@@ -105,7 +107,11 @@ const SidebarFiltros = ({ onFiltrar }) => {
             {categorias.map((cat) => (
               <li
                 key={cat._id}
-                className="cursor-pointer text-gray-600 hover:text-blue-600"
+                className={`cursor-pointer ${
+                  categoriaSeleccionada === cat.nombre
+                    ? "text-blue-600 font-semibold"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
                 onClick={() => handleCategoria(cat.nombre)}
               >
                 {cat.nombre}
