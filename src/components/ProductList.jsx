@@ -60,6 +60,7 @@ const ProductList = () => {
 
     setFavoritos(nuevos);
     localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
+
     let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
     vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
     localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
@@ -74,7 +75,7 @@ const ProductList = () => {
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
-      if (categoria) resultado = resultado.filter((p) => p.categoria === categoria);
+      if (categoria) resultado = resultado.filter((p) => p.categoria?.nombre === categoria);
 
       setPaginaActual(1);
       setFiltrados(resultado);
