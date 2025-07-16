@@ -12,10 +12,15 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
   const [vistosRecientes, setVistosRecientes] = useState([]);
   const [mostrarMobile, setMostrarMobile] = useState(false);
+  const [toast, setToast] = useState("");
 
   const { user } = useAuth();
 
-  // Aplicar filtros cuando cambian inputs
+  const mostrarToast = (mensaje) => {
+    setToast(mensaje);
+    setTimeout(() => setToast(""), 2500);
+  };
+
   const aplicarFiltros = useCallback(() => {
     onFiltrar({
       precioMin,
@@ -26,7 +31,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
     });
   }, [precioMin, precioMax, busqueda, mostrarFavoritos, categoriaSeleccionada, onFiltrar]);
 
-  // Cargar categorías y orden personalizado
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
@@ -34,11 +38,9 @@ const SidebarFiltros = ({ onFiltrar }) => {
         const ordenGuardado = localStorage.getItem(`orden_categorias_${user?._id}`);
         if (ordenGuardado) {
           const ordenIds = JSON.parse(ordenGuardado);
-          // Reordenar usando el orden guardado
           const reordenadas = ordenIds
             .map(id => res.data.find(cat => cat._id === id))
             .filter(Boolean);
-          // Añadir nuevas si hay categorías no listadas aún
           const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
           setCategorias([...reordenadas, ...faltantes]);
         } else {
@@ -72,7 +74,6 @@ const SidebarFiltros = ({ onFiltrar }) => {
     onFiltrar({});
   };
 
-  // Drag & drop => actualiza estado y localStorage
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     const nuevasCategorias = [...categorias];
@@ -83,11 +84,29 @@ const SidebarFiltros = ({ onFiltrar }) => {
     if (user?._id) {
       const ordenIds = nuevasCategorias.map((c) => c._id);
       localStorage.setItem(`orden_categorias_${user._id}`, JSON.stringify(ordenIds));
+      mostrarToast("✅ Orden guardado");
+    }
+  };
+
+  const restablecerOrden = async () => {
+    try {
+      localStorage.removeItem(`orden_categorias_${user._id}`);
+      const res = await api.get("/categorias");
+      setCategorias(res.data);
+      mostrarToast("🔄 Orden original restaurado");
+    } catch (error) {
+      console.error("Error al restablecer orden:", error);
     }
   };
 
   return (
     <>
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow z-[9999] text-sm animate-fadeIn">
+          {toast}
+        </div>
+      )}
+
       <button
         onClick={() => setMostrarMobile(true)}
         className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
@@ -161,6 +180,15 @@ const SidebarFiltros = ({ onFiltrar }) => {
               )}
             </Droppable>
           </DragDropContext>
+
+          {user && (
+            <button
+              onClick={restablecerOrden}
+              className="mt-2 text-blue-500 text-xs hover:underline"
+            >
+              🔄 Restablecer orden original
+            </button>
+          )}
         </div>
 
         <div>
