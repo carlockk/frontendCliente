@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 export default function ProductQuickView({ isOpen, toggle, producto }) {
   const [showAnimation, setShowAnimation] = useState(false);
 
-  // Esc + Animación suave al montar
+  // Animación suave al mostrar
   useEffect(() => {
     if (isOpen) {
       setShowAnimation(false);
@@ -14,6 +14,7 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
     }
   }, [isOpen]);
 
+  // Cerrar con tecla Esc
   useEffect(() => {
     const escHandler = (e) => e.key === "Escape" && toggle();
     window.addEventListener("keydown", escHandler);
@@ -24,17 +25,15 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-end sm:items-center justify-center transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[9999] flex justify-end transition-opacity duration-300 ${
         showAnimation ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
       }`}
       onClick={toggle}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300 ${
-          showAnimation
-            ? "translate-y-0 sm:translate-x-0 opacity-100"
-            : "translate-y-full sm:translate-x-full opacity-0"
+        className={`bg-white w-full sm:max-w-md h-full sm:h-auto shadow-xl sm:rounded-l-lg overflow-y-auto transform transition-transform duration-300 ${
+          showAnimation ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
         }`}
       >
         <div className="relative p-5">
