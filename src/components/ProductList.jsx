@@ -195,7 +195,11 @@ const ProductList = () => {
       </div>
 
       {/* Sidebar móvil */}
-      <SidebarFiltros onFiltrar={aplicarFiltros} />
+      {/* Sidebar solo para móviles (modal/desplegable) */}
+<div className="md:hidden">
+  <SidebarFiltros onFiltrar={aplicarFiltros} />
+</div>
+
 
       {/* Vista rápida */}
       <ProductQuickView
