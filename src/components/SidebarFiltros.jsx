@@ -126,7 +126,10 @@ const SidebarFiltros = ({ onFiltrar }) => {
         </div>
       )}
 
-      <div className="hidden md:block sticky top-20 w-64 bg-white border-l border-gray-200 max-h-[calc(100vh-5rem)] overflow-y-auto">
+      <div className="hidden md:block w-64 bg-white border-l border-gray-200 h-full">
+  <div className="p-4 space-y-6 sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
+    {renderSidebarContent()}
+  </div>
         <div className="p-4 space-y-6">{renderSidebarContent()}</div>
       </div>
     </>
