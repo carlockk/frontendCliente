@@ -1,6 +1,5 @@
 // src/components/ProductQuickView.jsx
 import { useEffect } from "react";
-import clsx from "clsx";
 
 export default function ProductQuickView({ isOpen, toggle, producto }) {
   useEffect(() => {

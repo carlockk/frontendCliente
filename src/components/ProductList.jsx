@@ -218,7 +218,6 @@ const ProductList = () => {
   toggle={() => setProductoVistaRapida(null)}
   producto={productoVistaRapida}
 />
-
     </div>
   );
 };
