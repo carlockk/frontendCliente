@@ -101,37 +101,42 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
   return (
     <>
+      {/* Toast flotante */}
       {toast && (
         <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow z-[9999] text-sm animate-fadeIn">
           {toast}
         </div>
       )}
 
+      {/* Botón mostrar sidebar móvil */}
       <button
         onClick={() => setMostrarMobile(true)}
-        className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
+        className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4 ml-4 mt-4"
       >
         Filtros
       </button>
 
+      {/* Sidebar móvil */}
       {mostrarMobile && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
           <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Filtros</h2>
-              <button onClick={() => setMostrarMobile(false)}>✕</button>
+              <button onClick={() => setMostrarMobile(false)} className="text-xl">✕</button>
             </div>
             {renderSidebarContent()}
           </div>
         </div>
       )}
 
-      <div className="hidden md:block fixed right-0 top-0 bottom-0 w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
-  <div className="p-4 space-y-6">{renderSidebarContent()}</div>
-</div>
+      {/* Sidebar escritorio */}
+      <div className="hidden md:block fixed right-0 top- bottom-105 w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
+        <div className="p-4 space-y-6">{renderSidebarContent()}</div>
+      </div>
     </>
   );
 
+  // 🔁 Renderizado compartido
   function renderSidebarContent() {
     return (
       <div className="space-y-6 text-sm">
