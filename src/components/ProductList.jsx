@@ -85,6 +85,7 @@ const ProductList = () => {
     [productos, favoritos]
   );
 
+  // Agrupamos productos por categoría (ya filtrados)
   const productosPorCategoria = filtrados.reduce((acc, prod) => {
     const cat = prod.categoria?.nombre || "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
@@ -92,12 +93,14 @@ const ProductList = () => {
     return acc;
   }, {});
 
+  // Obtenemos orden desde localStorage
   const ordenCategorias = (() => {
     if (!isLogged) return [];
     const raw = localStorage.getItem(`orden_categorias_${user._id}`);
     return raw ? JSON.parse(raw) : [];
   })();
 
+  // Ordenamos las categorías por el orden guardado (por _id), pero usamos nombre
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
     const getIndex = (nombre) => {
       const p = productos.find(p => p.categoria?.nombre === nombre);
@@ -119,77 +122,71 @@ const ProductList = () => {
         🧾 Menú disponible
       </h1>
 
-      <div className="flex gap-4">
-        {/* Contenido principal */}
-        <div className="flex-1">
-          {categoriasOrdenadas.map((categoria) => (
-            <div key={categoria} className="mb-10">
-              {categoria !== "sin_categoria" && (
-                <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
-                  ••• {categoria} •••
-                </h2>
-              )}
-              <div className="px-4">
-                {productosPorCategoria[categoria].map((producto) => {
-                  const descripcionCorta =
-                    producto.descripcion?.length > 70
-                      ? producto.descripcion.slice(0, 70) + "..."
-                      : producto.descripcion;
+      <div className="flex-1 pr-0 md:pr-64">
+        {categoriasOrdenadas.map((categoria) => (
+          <div key={categoria} className="mb-10">
+            {categoria !== "sin_categoria" && (
+              <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
+                ••• {categoria} •••
+              </h2>
+            )}
+            <div className="px-4">
+              {productosPorCategoria[categoria].map((producto) => {
+                const descripcionCorta =
+                  producto.descripcion?.length > 70
+                    ? producto.descripcion.slice(0, 70) + "..."
+                    : producto.descripcion;
 
-                  const esFavorito = favoritos.includes(producto._id);
+                const esFavorito = favoritos.includes(producto._id);
 
-                  return (
-                    <div
-                      key={producto._id}
-                      className="flex items-center justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 mb-4"
-                    >
-                      <img
-                        src={producto.imagen_url}
-                        alt={producto.nombre}
-                        className="w-20 h-20 object-cover rounded mr-4"
-                      />
-                      <div className="flex-1 text-left">
-                        <h2 className="font-semibold text-sm">{producto.nombre}</h2>
-                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-green-600">
-                          ${producto.precio?.toLocaleString("es-CL")}
-                        </p>
-                        <button
-                          onClick={() => toggleFavorito(producto)}
-                          className={`text-xl transition hover:scale-110 ${
-                            esFavorito ? "text-red-500" : "text-gray-500"
-                          }`}
-                        >
-                          <i className="fas fa-heart"></i>
-                        </button>
-                        <button
-                          onClick={() => abrirVistaRapida(producto)}
-                          className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
-                          title="Vista rápida"
-                        >
-                          <i className="fas fa-eye"></i>
-                        </button>
-                        <button
-                          onClick={() => agregarAlCarrito(producto)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
-                        >
-                          +
-                        </button>
-                      </div>
+                return (
+                  <div
+                    key={producto._id}
+                    className="flex items-center justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 mb-4"
+                  >
+                    <img
+                      src={producto.imagen_url}
+                      alt={producto.nombre}
+                      className="w-20 h-20 object-cover rounded mr-4"
+                    />
+                    <div className="flex-1 text-left">
+                      <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                      <p className="text-xs text-gray-500">{descripcionCorta}</p>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-green-600">
+                        ${producto.precio?.toLocaleString("es-CL")}
+                      </p>
+                      <button
+                        onClick={() => toggleFavorito(producto)}
+                        className={`text-xl transition hover:scale-110 ${
+                          esFavorito ? "text-red-500" : "text-gray-500"
+                        }`}
+                      >
+                        <i className="fas fa-heart"></i>
+                      </button>
+                      <button
+                        onClick={() => abrirVistaRapida(producto)}
+                        className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
+                        title="Vista rápida"
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                      <button
+                        onClick={() => agregarAlCarrito(producto)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
-        {/* Sidebar lateral en escritorio */}
-        <div className="hidden md:block w-64">
-          <SidebarFiltros onFiltrar={aplicarFiltros} />
-        </div>
+        <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 
       {/* Vista rápida */}
