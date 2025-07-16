@@ -1,263 +1,202 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import api from "../api";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import SidebarFiltros from "../components/SidebarFiltros";
+import ProductQuickView from "../components/ProductQuickView";
 
-const SidebarFiltros = ({ onFiltrar }) => {
-  const [categorias, setCategorias] = useState([]);
-  const [precioMin, setPrecioMin] = useState("");
-  const [precioMax, setPrecioMax] = useState("");
-  const [busqueda, setBusqueda] = useState("");
-  const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
-  const [vistosRecientes, setVistosRecientes] = useState([]);
-  const [mostrarMobile, setMostrarMobile] = useState(false);
-  const [toast, setToast] = useState("");
-
-  const { user } = useAuth();
-
-  const aplicarFiltros = useCallback(() => {
-    onFiltrar({
-      precioMin,
-      precioMax,
-      busqueda,
-      mostrarFavoritos,
-      categoria: categoriaSeleccionada,
-    });
-  }, [precioMin, precioMax, busqueda, mostrarFavoritos, categoriaSeleccionada, onFiltrar]);
+const ProductList = () => {
+  const [productos, setProductos] = useState([]);
+  const [filtrados, setFiltrados] = useState([]);
+  const { dispatch } = useCart();
+  const { isLogged, user } = useAuth();
+  const [favoritos, setFavoritos] = useState([]);
+  const [productoVistaRapida, setProductoVistaRapida] = useState(null);
+  const topRef = useRef();
 
   useEffect(() => {
-    const fetchCategorias = async () => {
+    const fetchProductos = async () => {
       try {
-        const res = await api.get("/categorias");
-        const ordenGuardado = localStorage.getItem(`orden_categorias_${user?._id}`);
-        if (ordenGuardado) {
-          const ordenIds = JSON.parse(ordenGuardado);
-          const reordenadas = ordenIds
-            .map(id => res.data.find(cat => cat._id === id))
-            .filter(Boolean);
-          const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
-          setCategorias([...reordenadas, ...faltantes]);
-        } else {
-          setCategorias(res.data);
-        }
-      } catch (error) {
-        console.error("Error al cargar categorías:", error);
+        const res = await api.get("/productos");
+        const ordenados = res.data.sort(
+          (a, b) => new Date(b.creado_en) - new Date(a.creado_en)
+        );
+        setProductos(ordenados);
+        setFiltrados(ordenados);
+      } catch (err) {
+        console.error("Error al cargar productos:", err);
       }
     };
-
-    fetchCategorias();
-
-    const vistos = localStorage.getItem("productos_vistos");
-    setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, [user]);
+    fetchProductos();
+  }, []);
 
   useEffect(() => {
-    aplicarFiltros();
-  }, [aplicarFiltros]);
-
-  const handleCategoria = (nombre) => {
-    setCategoriaSeleccionada((prev) => (prev === nombre ? null : nombre));
-  };
-
-  const limpiarFiltros = () => {
-    setPrecioMin("");
-    setPrecioMax("");
-    setBusqueda("");
-    setMostrarFavoritos(false);
-    setCategoriaSeleccionada(null);
-    onFiltrar({});
-  };
-
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    const nuevasCategorias = [...categorias];
-    const [moved] = nuevasCategorias.splice(result.source.index, 1);
-    nuevasCategorias.splice(result.destination.index, 0, moved);
-    setCategorias(nuevasCategorias);
-
-    if (user?._id) {
-      const ordenIds = nuevasCategorias.map((c) => c._id);
-      localStorage.setItem(`orden_categorias_${user._id}`, JSON.stringify(ordenIds));
-      mostrarToast("✅ Orden guardado");
+    if (isLogged) {
+      const guardados = localStorage.getItem(`favoritos_${user._id}`);
+      setFavoritos(guardados ? JSON.parse(guardados) : []);
+    } else {
+      setFavoritos([]);
     }
+  }, [isLogged, user]);
+
+  const agregarAlCarrito = (producto) => {
+    dispatch({ type: "ADD_ITEM", payload: producto });
   };
 
-  const mostrarToast = (mensaje) => {
-    setToast(mensaje);
-    setTimeout(() => setToast(""), 2500);
-  };
-
-  const restablecerOrden = async () => {
-    localStorage.removeItem(`orden_categorias_${user._id}`);
-    try {
-      const res = await api.get("/categorias");
-      setCategorias(res.data);
-      mostrarToast("🔄 Orden restablecido");
-    } catch (err) {
-      console.error("Error al restablecer:", err);
+  const toggleFavorito = (producto) => {
+    if (!isLogged) {
+      alert("Debes iniciar sesión para agregar productos a favoritos.");
+      return;
     }
+
+    const yaEsta = favoritos.includes(producto._id);
+    const nuevos = yaEsta
+      ? favoritos.filter((id) => id !== producto._id)
+      : [...favoritos, producto._id];
+
+    setFavoritos(nuevos);
+    localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
+
+    let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
+    vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
+    localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
   };
 
-  return (
-    <>
-      {toast && (
-        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow z-[9999] text-sm animate-fadeIn">
-          {toast}
-        </div>
-      )}
+  const abrirVistaRapida = (producto) => {
+    const relacionados = productos
+      .filter((p) => p.categoria?.nombre === producto.categoria?.nombre && p._id !== producto._id)
+      .slice(0, 3);
+    setProductoVistaRapida({ ...producto, relacionados });
+  };
 
-      <button
-        onClick={() => setMostrarMobile(true)}
-        className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
-      >
-        Filtros
-      </button>
+  const aplicarFiltros = useCallback(
+    ({ precioMin, precioMax, busqueda, mostrarFavoritos, categoria }) => {
+      let resultado = [...productos];
+      if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
+      if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
+      if (busqueda) resultado = resultado.filter((p) =>
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      );
+      if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
+      if (categoria) resultado = resultado.filter((p) => p.categoria?.nombre === categoria);
 
-      {mostrarMobile && (
-        <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
-          <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Filtros</h2>
-              <button onClick={() => setMostrarMobile(false)}>✕</button>
-            </div>
-            {renderSidebarContent()}
-          </div>
-        </div>
-      )}
-
-      <div className="hidden md:block fixed right-0 top-[80px] bottom-[105px] w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
-        <div className="p-4 space-y-6">{renderSidebarContent()}</div>
-      </div>
-    </>
+      setFiltrados(resultado);
+    },
+    [productos, favoritos]
   );
 
-  function renderSidebarContent() {
-    return (
-      <div className="space-y-6 text-sm">
-        <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Buscar producto</h3>
-          <input
-            type="text"
-            placeholder="Ej: Hamburguesa"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full border px-2 py-1 rounded"
-          />
-        </div>
+  // Agrupamos productos por categoría (ya filtrados)
+  const productosPorCategoria = filtrados.reduce((acc, prod) => {
+    const cat = prod.categoria?.nombre || "sin_categoria";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(prod);
+    return acc;
+  }, {});
 
-        <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Categorías</h3>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="categorias">
-              {(provided) => (
-                <ul
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-1"
-                >
-                  {categorias.map((cat, index) => (
-                    <Draggable key={cat._id} draggableId={cat._id} index={index}>
-                      {(provided, snapshot) => (
-                        <li
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`cursor-pointer p-1 rounded ${
-                            categoriaSeleccionada === cat.nombre
-                              ? "text-blue-600 font-semibold"
-                              : "text-gray-600 hover:text-blue-600"
-                          } ${snapshot.isDragging ? "bg-gray-100" : ""}`}
-                          onClick={() => handleCategoria(cat.nombre)}
-                        >
-                          {cat.nombre}
-                        </li>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </ul>
-              )}
-            </Droppable>
-          </DragDropContext>
+  // Obtenemos orden desde localStorage
+  const ordenCategorias = (() => {
+    if (!isLogged) return [];
+    const raw = localStorage.getItem(`orden_categorias_${user._id}`);
+    return raw ? JSON.parse(raw) : [];
+  })();
 
-          {user && (
-            <button
-              onClick={restablecerOrden}
-              className="mt-2 text-blue-500 text-xs hover:underline"
-            >
-              🔄 Restablecer orden original
-            </button>
-          )}
-        </div>
+  // Ordenamos las categorías por el orden guardado (por _id), pero usamos nombre
+  const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
+    const getIndex = (nombre) => {
+      const p = productos.find(p => p.categoria?.nombre === nombre);
+      const id = p?.categoria?._id;
+      return ordenCategorias.indexOf(id);
+    };
+    const idxA = getIndex(a);
+    const idxB = getIndex(b);
 
-        <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Precio</h3>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Mín"
-              value={precioMin}
-              onChange={(e) => setPrecioMin(e.target.value)}
-              className="w-full border px-2 py-1 rounded"
-            />
-            <input
-              type="number"
-              placeholder="Máx"
-              value={precioMax}
-              onChange={(e) => setPrecioMax(e.target.value)}
-              className="w-full border px-2 py-1 rounded"
-            />
-          </div>
-        </div>
+    if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
 
-        <div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={mostrarFavoritos}
-              onChange={() => setMostrarFavoritos((prev) => !prev)}
-            />
-            Mostrar solo favoritos
-          </label>
-        </div>
+  return (
+    <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
+      <h1 className="text-3xl font-bold text-gray-700 mb-6 px-4 pt-6 flex items-center gap-2">
+        🧾 Menú disponible
+      </h1>
 
-        {vistosRecientes.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-2 text-gray-700">Vistos recientemente</h3>
-            <ul className="space-y-2">
-              {vistosRecientes.map((prod) => (
-                <li key={prod._id} className="text-gray-700">
-                  <div className="flex items-center gap-2">
+      <div className="flex-1 pr-0 md:pr-64">
+        {categoriasOrdenadas.map((categoria) => (
+          <div key={categoria} className="mb-10">
+            {categoria !== "sin_categoria" && (
+              <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
+                ••• {categoria} •••
+              </h2>
+            )}
+            <div className="px-4">
+              {productosPorCategoria[categoria].map((producto) => {
+                const descripcionCorta =
+                  producto.descripcion?.length > 70
+                    ? producto.descripcion.slice(0, 70) + "..."
+                    : producto.descripcion;
+
+                const esFavorito = favoritos.includes(producto._id);
+
+                return (
+                  <div
+                    key={producto._id}
+                    className="flex items-center justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 mb-4"
+                  >
                     <img
-                      src={prod.imagen_url}
-                      alt={prod.nombre}
-                      className="w-10 h-10 object-cover rounded"
+                      src={producto.imagen_url}
+                      alt={producto.nombre}
+                      className="w-20 h-20 object-cover rounded mr-4"
                     />
-                    <div>
-                      <p className="font-medium">{prod.nombre}</p>
-                      <p className="text-xs text-green-600">
-                        ${prod.precio?.toLocaleString("es-CL")}
+                    <div className="flex-1 text-left">
+                      <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                      <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-green-600">
+                        ${producto.precio?.toLocaleString("es-CL")}
                       </p>
+                      <button
+                        onClick={() => toggleFavorito(producto)}
+                        className={`text-xl transition hover:scale-110 ${
+                          esFavorito ? "text-red-500" : "text-gray-500"
+                        }`}
+                      >
+                        <i className="fas fa-heart"></i>
+                      </button>
+                      <button
+                        onClick={() => abrirVistaRapida(producto)}
+                        className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
+                        title="Vista rápida"
+                      >
+                        <i className="fas fa-eye"></i>
+                      </button>
+                      <button
+                        onClick={() => agregarAlCarrito(producto)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+            </div>
           </div>
-        )}
+        ))}
 
-        <div className="pt-2">
-          <button
-            onClick={limpiarFiltros}
-            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded text-sm font-medium"
-          >
-            Limpiar filtros
-          </button>
-        </div>
+        <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
-    );
-  }
+
+      {/* Vista rápida */}
+      <ProductQuickView
+        isOpen={!!productoVistaRapida}
+        toggle={() => setProductoVistaRapida(null)}
+        producto={productoVistaRapida}
+      />
+    </div>
+  );
 };
 
-export default SidebarFiltros;
+export default ProductList;
