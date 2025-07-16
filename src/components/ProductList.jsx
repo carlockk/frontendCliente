@@ -115,14 +115,14 @@ const ProductList = () => {
 
   return (
     <>
-      <div className="w-full px-4 py-6" ref={topRef}>
+      <div className="w-full max-w-7xl mx-auto py-6 px-4 md:px-0" ref={topRef}>
         <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
           🧾 Menú disponible
         </h1>
 
-        <div className="flex flex-col md:flex-row gap-6 items-start">
+        <div className="grid md:grid-cols-[1fr_300px] gap-6">
           {/* Productos */}
-          <div className="flex-1">
+          <div className="w-full">
             {categoriasOrdenadas.map((categoria) => (
               <div key={categoria} className="mb-10">
                 {categoria !== "sin_categoria" && (
@@ -190,7 +190,7 @@ const ProductList = () => {
           </div>
 
           {/* Sidebar escritorio */}
-          <div className="hidden md:block w-80">
+          <div className="hidden md:block w-full">
             <SidebarFiltros onFiltrar={aplicarFiltros} />
           </div>
         </div>
@@ -203,8 +203,8 @@ const ProductList = () => {
         />
       </div>
 
-      {/* Sidebar móvil */}
-      <div className="md:hidden px-4 mt-4">
+      {/* Sidebar móvil (se muestra al final del contenido en mobile) */}
+      <div className="md:hidden px-4">
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
     </>
