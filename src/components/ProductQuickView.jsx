@@ -1,7 +1,19 @@
-// src/components/ProductQuickView.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function ProductQuickView({ isOpen, toggle, producto }) {
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  // Esc + Animación suave al montar
+  useEffect(() => {
+    if (isOpen) {
+      setShowAnimation(false);
+      const timeout = setTimeout(() => setShowAnimation(true), 10);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowAnimation(false);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const escHandler = (e) => e.key === "Escape" && toggle();
     window.addEventListener("keydown", escHandler);
@@ -13,14 +25,14 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
   return (
     <div
       className={`fixed inset-0 z-[9999] flex items-end sm:items-center justify-center transition-opacity duration-300 ${
-        isOpen ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
+        showAnimation ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
       }`}
       onClick={toggle}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300 ${
-          isOpen
+          showAnimation
             ? "translate-y-0 sm:translate-x-0 opacity-100"
             : "translate-y-full sm:translate-x-full opacity-0"
         }`}
@@ -34,7 +46,6 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
             ✖
           </button>
 
-          {/* Contenido */}
           <img
             src={producto.imagen_url}
             alt={producto.nombre}
@@ -46,7 +57,6 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
             ${producto.precio?.toLocaleString("es-CL")}
           </p>
 
-          {/* Relacionados */}
           <h3 className="text-sm font-semibold mb-2">Productos relacionados:</h3>
           <div className="grid grid-cols-3 gap-2">
             {producto.relacionados?.map((rel) => (
