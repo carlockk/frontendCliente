@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 
+
 export default function ProductQuickView({ producto, onClose }) {
   const [visible, setVisible] = useState(false);
 

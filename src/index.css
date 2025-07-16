@@ -7,3 +7,12 @@ body {
   background-color: #fdfdfd;
   color: #333;
 }
+
+@layer utilities {
+  .translate-y-0 {}
+  .translate-y-full {}
+  .translate-x-0 {}
+  .translate-x-full {}
+  .opacity-0 {}
+  .opacity-100 {}
+}
