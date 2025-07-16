@@ -8,7 +8,7 @@ const Layout = ({ children }) => {
   const toggleCart = () => setCartOpen(!isCartOpen);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 relative">
+    <div className="min-h-screen flex flex-col bg-white text-gray-900 relative">
       <Navbar onCartClick={toggleCart} />
       <main className="flex-grow container mx-auto px-4 py-6">{children}</main>
       <footer className="bg-black border-t mt-10 py-6 text-center text-gray-200 ">
