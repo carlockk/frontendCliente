@@ -108,12 +108,11 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       <button
-  onClick={() => setMostrarMobile(true)}
-  className="block md:hidden text-gray-500 text-sm underline-offset-2"
->
-  Mostrar filtros
-</button>
-
+        onClick={() => setMostrarMobile(true)}
+        className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
+      >
+        Filtros
+      </button>
 
       {mostrarMobile && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
