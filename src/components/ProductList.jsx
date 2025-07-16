@@ -115,7 +115,7 @@ const ProductList = () => {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-6" ref={topRef}>
+      <div className="w-full px-4 py-6" ref={topRef}>
         <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
           🧾 Menú disponible
         </h1>
@@ -190,7 +190,7 @@ const ProductList = () => {
           </div>
 
           {/* Sidebar escritorio */}
-          <div className="hidden md:block w-80 ml-4">
+          <div className="hidden md:block w-80">
             <SidebarFiltros onFiltrar={aplicarFiltros} />
           </div>
         </div>
@@ -203,8 +203,8 @@ const ProductList = () => {
         />
       </div>
 
-      {/* Sidebar móvil (solo modal) */}
-      <div className="md:hidden">
+      {/* Sidebar móvil */}
+      <div className="md:hidden px-4 mt-4">
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
     </>
