@@ -115,7 +115,7 @@ const ProductList = () => {
 
   return (
     <>
-      <div className="w-full max-w-7xl mx-auto py-6 px-4 md:px-0" ref={topRef}>
+      <div className="w-full max-w-[95%] mx-auto py-6 px-4 md:px-0" ref={topRef}>
         <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
           🧾 Menú disponible
         </h1>
