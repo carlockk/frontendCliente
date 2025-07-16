@@ -12,23 +12,18 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
 
   return (
     <div
-      className={clsx(
-        "fixed inset-0 z-[9999] bg-black bg-opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center",
-        {
-          "bg-opacity-40": isOpen,
-        }
-      )}
+      className={`fixed inset-0 z-[9999] flex items-end sm:items-center justify-center transition-opacity duration-300 ${
+        isOpen ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
+      }`}
       onClick={toggle}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={clsx(
-          "bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300",
-          {
-            "translate-y-0 sm:translate-x-0 opacity-100": isOpen,
-            "translate-y-full sm:translate-x-full opacity-0": !isOpen,
-          }
-        )}
+        className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300 ${
+          isOpen
+            ? "translate-y-0 sm:translate-x-0 opacity-100"
+            : "translate-y-full sm:translate-x-full opacity-0"
+        }`}
       >
         <div className="relative p-5">
           <button
