@@ -1,29 +1,43 @@
 // src/components/ProductQuickView.jsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import clsx from "clsx";
 
 export default function ProductQuickView({ producto, onClose }) {
-  // Cerrar con tecla Esc
+  const [visible, setVisible] = useState(false);
+
   useEffect(() => {
-    const escHandler = (e) => e.key === "Escape" && onClose();
+    setVisible(true); // activa la animación al montar
+    const escHandler = (e) => e.key === "Escape" && handleClose();
     window.addEventListener("keydown", escHandler);
     return () => window.removeEventListener("keydown", escHandler);
-  }, [onClose]);
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 300); // espera que termine la animación
+  };
 
   if (!producto) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-end sm:items-center justify-center"
-      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-end sm:items-center justify-center transition-opacity duration-300"
+      onClick={handleClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-lg sm:rounded-lg shadow-xl w-full sm:max-w-md h-[90%] sm:h-auto transform transition-all duration-300 translate-y-0 sm:translate-x-0 sm:translate-y-0 sm:fixed sm:right-0"
+        className={clsx(
+          "bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300",
+          {
+            "translate-y-0 sm:translate-x-0 opacity-100": visible,
+            "translate-y-full sm:translate-x-full opacity-0": !visible,
+          }
+        )}
       >
-        <div className="relative p-5 overflow-y-auto h-full sm:h-auto">
-          {/* Cerrar */}
+        <div className="relative p-5">
+          {/* Botón cerrar */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
             aria-label="Cerrar vista rápida"
           >
@@ -53,7 +67,9 @@ export default function ProductQuickView({ producto, onClose }) {
                   className="h-16 w-16 object-cover mx-auto rounded"
                 />
                 <p className="text-xs mt-1">{rel.nombre}</p>
-                <p className="text-xs text-green-600">${rel.precio?.toLocaleString("es-CL")}</p>
+                <p className="text-xs text-green-600">
+                  ${rel.precio?.toLocaleString("es-CL")}
+                </p>
               </div>
             ))}
           </div>
