@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import api from "../api";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { useAuth } from "../contexts/AuthContext";
 
 const SidebarFiltros = ({ onFiltrar }) => {
   const [categorias, setCategorias] = useState([]);
@@ -11,6 +13,9 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const [vistosRecientes, setVistosRecientes] = useState([]);
   const [mostrarMobile, setMostrarMobile] = useState(false);
 
+  const { user } = useAuth();
+
+  // Aplicar filtros cuando cambian inputs
   const aplicarFiltros = useCallback(() => {
     onFiltrar({
       precioMin,
@@ -21,11 +26,24 @@ const SidebarFiltros = ({ onFiltrar }) => {
     });
   }, [precioMin, precioMax, busqueda, mostrarFavoritos, categoriaSeleccionada, onFiltrar]);
 
+  // Cargar categorías y orden personalizado
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
         const res = await api.get("/categorias");
-        setCategorias(res.data);
+        const ordenGuardado = localStorage.getItem(`orden_categorias_${user?._id}`);
+        if (ordenGuardado) {
+          const ordenIds = JSON.parse(ordenGuardado);
+          // Reordenar usando el orden guardado
+          const reordenadas = ordenIds
+            .map(id => res.data.find(cat => cat._id === id))
+            .filter(Boolean);
+          // Añadir nuevas si hay categorías no listadas aún
+          const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
+          setCategorias([...reordenadas, ...faltantes]);
+        } else {
+          setCategorias(res.data);
+        }
       } catch (error) {
         console.error("Error al cargar categorías:", error);
       }
@@ -35,7 +53,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
     const vistos = localStorage.getItem("productos_vistos");
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     aplicarFiltros();
@@ -54,6 +72,20 @@ const SidebarFiltros = ({ onFiltrar }) => {
     onFiltrar({});
   };
 
+  // Drag & drop => actualiza estado y localStorage
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const nuevasCategorias = [...categorias];
+    const [moved] = nuevasCategorias.splice(result.source.index, 1);
+    nuevasCategorias.splice(result.destination.index, 0, moved);
+    setCategorias(nuevasCategorias);
+
+    if (user?._id) {
+      const ordenIds = nuevasCategorias.map((c) => c._id);
+      localStorage.setItem(`orden_categorias_${user._id}`, JSON.stringify(ordenIds));
+    }
+  };
+
   return (
     <>
       <button
@@ -68,7 +100,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
           <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Filtros</h2>
-              <button onClick={() => setMostrarMobile(false)} aria-label="Cerrar">✕</button>
+              <button onClick={() => setMostrarMobile(false)}>✕</button>
             </div>
             {renderSidebarContent()}
           </div>
@@ -97,21 +129,38 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
         <div>
           <h3 className="font-semibold mb-2 text-gray-700">Categorías</h3>
-          <ul className="space-y-1">
-            {categorias.map((cat) => (
-              <li
-                key={cat._id}
-                className={`cursor-pointer ${
-                  categoriaSeleccionada === cat.nombre
-                    ? "text-blue-600 font-semibold"
-                    : "text-gray-600 hover:text-blue-600"
-                }`}
-                onClick={() => handleCategoria(cat.nombre)}
-              >
-                {cat.nombre}
-              </li>
-            ))}
-          </ul>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="categorias">
+              {(provided) => (
+                <ul
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-1"
+                >
+                  {categorias.map((cat, index) => (
+                    <Draggable key={cat._id} draggableId={cat._id} index={index}>
+                      {(provided, snapshot) => (
+                        <li
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`cursor-pointer p-1 rounded ${
+                            categoriaSeleccionada === cat.nombre
+                              ? "text-blue-600 font-semibold"
+                              : "text-gray-600 hover:text-blue-600"
+                          } ${snapshot.isDragging ? "bg-gray-100" : ""}`}
+                          onClick={() => handleCategoria(cat.nombre)}
+                        >
+                          {cat.nombre}
+                        </li>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </ul>
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
 
         <div>

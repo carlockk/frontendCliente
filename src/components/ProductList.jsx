@@ -98,12 +98,35 @@ const ProductList = () => {
     paginaActual * productosPorPagina
   );
 
+  // Agrupamos productos por categoría
   const productosPorCategoria = productosPaginados.reduce((acc, prod) => {
     const cat = prod.categoria?.nombre || "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
     return acc;
   }, {});
+
+  // Orden de categorías desde localStorage
+  const ordenCategorias = (() => {
+    if (!isLogged) return [];
+    const raw = localStorage.getItem(`orden_categorias_${user._id}`);
+    return raw ? JSON.parse(raw) : [];
+  })();
+
+  // Ordenamos categorías según el orden guardado
+  const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
+    const idxA = ordenCategorias.findIndex((id) =>
+      productos.find((p) => p.categoria?.nombre === a && p.categoria?._id === id)
+    );
+    const idxB = ordenCategorias.findIndex((id) =>
+      productos.find((p) => p.categoria?.nombre === b && p.categoria?._id === id)
+    );
+
+    if (idxA === -1 && idxB === -1) return a.localeCompare(b); // fallback alfabético
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
@@ -112,7 +135,7 @@ const ProductList = () => {
       </h1>
 
       <div className="flex-1 pr-0 md:pr-64">
-        {Object.entries(productosPorCategoria).map(([categoria, productos]) => (
+        {categoriasOrdenadas.map((categoria) => (
           <div key={categoria} className="mb-10">
             {categoria !== "sin_categoria" && (
               <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
@@ -120,7 +143,7 @@ const ProductList = () => {
               </h2>
             )}
             <div className="px-4">
-              {productos.map((producto) => {
+              {productosPorCategoria[categoria].map((producto) => {
                 const descripcionCorta =
                   producto.descripcion?.length > 70
                     ? producto.descripcion.slice(0, 70) + "..."
@@ -148,7 +171,9 @@ const ProductList = () => {
                       </p>
                       <button
                         onClick={() => toggleFavorito(producto)}
-                        className={`text-xl transition hover:scale-110 ${esFavorito ? "text-red-500" : "text-gray-500"}`}
+                        className={`text-xl transition hover:scale-110 ${
+                          esFavorito ? "text-red-500" : "text-gray-500"
+                        }`}
                       >
                         <i className="fas fa-heart"></i>
                       </button>
@@ -173,6 +198,7 @@ const ProductList = () => {
           </div>
         ))}
 
+        {/* Paginación */}
         <div className="flex justify-center items-center gap-2 py-6 flex-wrap">
           <button
             onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
@@ -209,15 +235,16 @@ const ProductList = () => {
           </button>
         </div>
 
+        {/* Filtros */}
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 
       {/* Vista rápida */}
       <ProductQuickView
-  isOpen={!!productoVistaRapida}
-  toggle={() => setProductoVistaRapida(null)}
-  producto={productoVistaRapida}
-/>
+        isOpen={!!productoVistaRapida}
+        toggle={() => setProductoVistaRapida(null)}
+        producto={productoVistaRapida}
+      />
     </div>
   );
 };
