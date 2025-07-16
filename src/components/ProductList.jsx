@@ -168,7 +168,7 @@ const ProductList = () => {
       </div>
 
       {/* Sidebar permanente en desktop y toggleable en móvil */}
-      <div className={`fixed top-0 bottom-[105px] right-0 w-64 bg-white border-l border-gray-200 overflow-y-auto z-40 transition-transform transform md:translate-x-0 ${sidebarVisible ? "translate-x-0" : "translate-x-full"} md:block hidden`}>
+      <div className={`fixed top-105 bottom-[105px] right-0 w-64 bg-white border-l border-gray-200 overflow-y-auto z-40 transition-transform transform md:translate-x-0 ${sidebarVisible ? "translate-x-0" : "translate-x-full"} md:block hidden`}>
         <div className="p-4 space-y-6 sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
           <SidebarFiltros onFiltrar={aplicarFiltros} />
         </div>
