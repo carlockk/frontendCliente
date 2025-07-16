@@ -130,7 +130,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       {/* Sidebar escritorio */}
-      <div className="hidden md:block fixed right-0 top-0 bottom-105 w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
+      <div className="hidden md:block fixed right-0 top-0 bottom-[105px] w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
         <div className="p-4 space-y-6">{renderSidebarContent()}</div>
       </div>
     </>
