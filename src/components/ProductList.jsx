@@ -114,7 +114,7 @@ const ProductList = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-0 py-0 bg-white" ref={topRef}>
+    <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
       <h1 className="text-3xl font-bold text-gray-700 mb-6 px-4 pt-6 flex items-center gap-2">
         🧾 Menú disponible
       </h1>
@@ -130,7 +130,7 @@ const ProductList = () => {
                 </h2>
               )}
               <div className="px-4">
-                {productosPorCategoria[categoria].map((producto, index) => {
+                {productosPorCategoria[categoria].map((producto) => {
                   const descripcionCorta =
                     producto.descripcion?.length > 70
                       ? producto.descripcion.slice(0, 70) + "..."
@@ -139,44 +139,44 @@ const ProductList = () => {
                   const esFavorito = favoritos.includes(producto._id);
 
                   return (
-                    <div key={producto._id} className="border-b border-dotted border-gray-300 py-3 flex items-center justify-between gap-4">
+                    <div
+                      key={producto._id}
+                      className="flex items-center justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 mb-4"
+                    >
                       <img
                         src={producto.imagen_url}
                         alt={producto.nombre}
-                        className="w-20 h-20 object-cover rounded"
+                        className="w-20 h-20 object-cover rounded mr-4"
                       />
                       <div className="flex-1 text-left">
-                        <h2 className="font-bold text-lg text-gray-800">{producto.nombre}</h2>
-                        <p className="italic text-sm text-gray-600">{descripcionCorta}</p>
+                        <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm text-gray-500">DESDE</span>
-                        <span className="text-lg font-semibold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-green-600">
                           ${producto.precio?.toLocaleString("es-CL")}
-                        </span>
-                        <div className="flex gap-2 mt-1">
-                          <button
-                            onClick={() => toggleFavorito(producto)}
-                            className={`text-xl transition hover:scale-110 ${
-                              esFavorito ? "text-red-500" : "text-gray-500"
-                            }`}
-                          >
-                            <i className="fas fa-heart"></i>
-                          </button>
-                          <button
-                            onClick={() => abrirVistaRapida(producto)}
-                            className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
-                            title="Vista rápida"
-                          >
-                            <i className="fas fa-eye"></i>
-                          </button>
-                          <button
-                            onClick={() => agregarAlCarrito(producto)}
-                            className="bg-gray-700 hover:bg-gray-800 text-white w-8 h-8 rounded-full flex items-center justify-center text-xl"
-                          >
-                            +
-                          </button>
-                        </div>
+                        </p>
+                        <button
+                          onClick={() => toggleFavorito(producto)}
+                          className={`text-xl transition hover:scale-110 ${
+                            esFavorito ? "text-red-500" : "text-gray-500"
+                          }`}
+                        >
+                          <i className="fas fa-heart"></i>
+                        </button>
+                        <button
+                          onClick={() => abrirVistaRapida(producto)}
+                          className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
+                          title="Vista rápida"
+                        >
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button
+                          onClick={() => agregarAlCarrito(producto)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   );
