@@ -1,45 +1,51 @@
 import { useEffect, useState } from "react";
 
-export default function ProductQuickView({ producto, onClose }) {
-  const [visible, setVisible] = useState(false);
+export default function ProductQuickView({ isOpen, toggle, producto }) {
+  const [showAnimation, setShowAnimation] = useState(false);
+
+  // Esc + Animación suave al montar
+  useEffect(() => {
+    if (isOpen) {
+      setShowAnimation(false);
+      const timeout = setTimeout(() => setShowAnimation(true), 10);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowAnimation(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
-    setVisible(true);
-
-    const escHandler = (e) => e.key === "Escape" && handleClose();
+    const escHandler = (e) => e.key === "Escape" && toggle();
     window.addEventListener("keydown", escHandler);
     return () => window.removeEventListener("keydown", escHandler);
-  }, []);
+  }, [toggle]);
 
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 300); // espera animación
-  };
-
-  if (!producto) return null;
+  if (!isOpen || !producto) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-black bg-opacity-40 flex items-end sm:items-center justify-center transition-opacity duration-300`}
-      onClick={handleClose}
+      className={`fixed inset-0 z-[9999] flex items-end sm:items-center justify-center transition-opacity duration-300 ${
+        showAnimation ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
+      }`}
+      onClick={toggle}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:rounded-lg rounded-t-lg shadow-xl overflow-y-auto transform transition-transform duration-300 ${
-          visible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+        className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300 ${
+          showAnimation
+            ? "translate-y-0 sm:translate-x-0 opacity-100"
+            : "translate-y-full sm:translate-x-full opacity-0"
         }`}
       >
         <div className="relative p-5">
-          {/* Botón cerrar */}
           <button
-            onClick={handleClose}
+            onClick={toggle}
             className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
             aria-label="Cerrar vista rápida"
           >
             ✖
           </button>
 
-          {/* Imagen y descripción */}
           <img
             src={producto.imagen_url}
             alt={producto.nombre}
@@ -51,27 +57,22 @@ export default function ProductQuickView({ producto, onClose }) {
             ${producto.precio?.toLocaleString("es-CL")}
           </p>
 
-          {/* Relacionados */}
-          {producto.relacionados?.length > 0 && (
-            <>
-              <h3 className="text-sm font-semibold mb-2">Productos relacionados:</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {producto.relacionados.map((rel) => (
-                  <div key={rel._id} className="text-center">
-                    <img
-                      src={rel.imagen_url}
-                      alt={rel.nombre}
-                      className="h-16 w-16 object-cover mx-auto rounded"
-                    />
-                    <p className="text-xs mt-1">{rel.nombre}</p>
-                    <p className="text-xs text-green-600">
-                      ${rel.precio?.toLocaleString("es-CL")}
-                    </p>
-                  </div>
-                ))}
+          <h3 className="text-sm font-semibold mb-2">Productos relacionados:</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {producto.relacionados?.map((rel) => (
+              <div key={rel._id} className="text-center">
+                <img
+                  src={rel.imagen_url}
+                  alt={rel.nombre}
+                  className="h-16 w-16 object-cover mx-auto rounded"
+                />
+                <p className="text-xs mt-1">{rel.nombre}</p>
+                <p className="text-xs text-green-600">
+                  ${rel.precio?.toLocaleString("es-CL")}
+                </p>
               </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
       </div>
     </div>
