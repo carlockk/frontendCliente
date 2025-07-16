@@ -115,18 +115,21 @@ const ProductList = () => {
 
   // Ordenamos categorías según el orden guardado
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
-    const idxA = ordenCategorias.findIndex((id) =>
-      productos.find((p) => p.categoria?.nombre === a && p.categoria?._id === id)
-    );
-    const idxB = ordenCategorias.findIndex((id) =>
-      productos.find((p) => p.categoria?.nombre === b && p.categoria?._id === id)
-    );
+  const getIndex = (nombre) => {
+    const prodConNombre = productos.find(p => p.categoria?.nombre === nombre);
+    const id = prodConNombre?.categoria?._id;
+    return ordenCategorias.indexOf(id);
+  };
 
-    if (idxA === -1 && idxB === -1) return a.localeCompare(b); // fallback alfabético
-    if (idxA === -1) return 1;
-    if (idxB === -1) return -1;
-    return idxA - idxB;
-  });
+  const idxA = getIndex(a);
+  const idxB = getIndex(b);
+
+  if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+  if (idxA === -1) return 1;
+  if (idxB === -1) return -1;
+  return idxA - idxB;
+});
+
 
   return (
     <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
