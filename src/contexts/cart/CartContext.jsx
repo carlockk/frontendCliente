@@ -10,17 +10,19 @@ const initialState = {
 const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADD_ITEM": {
+      const cantidad = action.payload.cantidad || 1;
+      const precio = action.payload.precio ?? action.payload.price ?? 0;
       const existing = state.items.find(item => item._id === action.payload._id);
       let updatedItems;
 
       if (existing) {
         updatedItems = state.items.map(item =>
           item._id === action.payload._id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + cantidad }
             : item
         );
       } else {
-        updatedItems = [...state.items, { ...action.payload, quantity: 1 }];
+        updatedItems = [...state.items, { ...action.payload, quantity: cantidad }];
       }
 
       const newTotal = updatedItems.reduce(
@@ -40,11 +42,7 @@ const cartReducer = (state, action) => {
         (acc, item) => acc + (item.precio ?? item.price ?? 0) * item.quantity,
         0
       );
-
-      return {
-        items: updatedItems,
-        total: newTotal,
-      };
+      return { items: updatedItems, total: newTotal };
     }
 
     case "INCREMENT_ITEM": {

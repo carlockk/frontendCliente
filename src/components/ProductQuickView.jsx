@@ -4,14 +4,12 @@ import { useCart } from "../contexts/cart/CartContext";
 export default function ProductQuickView({ isOpen, toggle, producto }) {
   const [showAnimation, setShowAnimation] = useState(false);
   const [cantidad, setCantidad] = useState(1);
-  const [toastVisible, setToastVisible] = useState(false);
   const { dispatch } = useCart();
 
   useEffect(() => {
     if (isOpen) {
-      setCantidad(1);
-      setToastVisible(false);
       setShowAnimation(false);
+      setCantidad(1); // Reiniciar cantidad cada vez que abre
       const timeout = setTimeout(() => setShowAnimation(true), 10);
       return () => clearTimeout(timeout);
     } else {
@@ -27,19 +25,15 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
 
   if (!isOpen || !producto) return null;
 
-  const aumentar = () => setCantidad((c) => c + 1);
-  const disminuir = () => setCantidad((c) => (c > 1 ? c - 1 : 1));
-
   const agregarAlCarrito = () => {
     dispatch({
       type: "ADD_ITEM",
-      payload: { ...producto, cantidad },
+      payload: {
+        ...producto,
+        cantidad: cantidad,
+      },
     });
-    setToastVisible(true);
-    setTimeout(() => {
-      setToastVisible(false);
-      toggle(); // cerrar vista
-    }, 2500);
+    toggle(); // cerrar al agregar
   };
 
   return (
@@ -77,30 +71,32 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
             ${producto.precio?.toLocaleString("es-CL")}
           </p>
 
-          <div className="flex items-center gap-3 mb-4">
+          {/* Cantidad + botón agregar */}
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div className="flex items-center border rounded px-3 py-1">
+              <button
+                onClick={() => setCantidad((prev) => Math.max(1, prev - 1))}
+                className="text-xl text-gray-600 hover:text-black px-2"
+              >
+                −
+              </button>
+              <span className="px-2 text-base">{cantidad}</span>
+              <button
+                onClick={() => setCantidad((prev) => prev + 1)}
+                className="text-xl text-gray-600 hover:text-black px-2"
+              >
+                +
+              </button>
+            </div>
             <button
-              onClick={disminuir}
-              className="bg-gray-200 px-3 py-1 rounded text-lg font-bold"
+              onClick={agregarAlCarrito}
+              className="bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700"
             >
-              -
-            </button>
-            <span className="text-lg">{cantidad}</span>
-            <button
-              onClick={aumentar}
-              className="bg-gray-200 px-3 py-1 rounded text-lg font-bold"
-            >
-              +
+              Agregar al carrito
             </button>
           </div>
 
-          <button
-            onClick={agregarAlCarrito}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold"
-          >
-            Agregar al carrito
-          </button>
-
-          <h3 className="text-sm font-semibold mb-2 mt-6">Productos relacionados:</h3>
+          <h3 className="text-sm font-semibold mb-2">Productos relacionados:</h3>
           <div className="grid grid-cols-3 gap-2">
             {producto.relacionados?.map((rel) => (
               <div key={rel._id} className="text-center">
@@ -118,13 +114,6 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
           </div>
         </div>
       </div>
-
-      {/* ✅ Mensaje flotante de éxito */}
-      {toastVisible && (
-        <div className="fixed bottom-8 sm:bottom-12 bg-green-600 text-white px-4 py-2 rounded shadow-lg text-sm animate-fadeIn z-[99999]">
-          ✅ Producto agregado al carrito
-        </div>
-      )}
     </div>
   );
 }
