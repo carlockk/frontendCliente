@@ -188,13 +188,13 @@ const ProductList = () => {
           ))}
         </div>
 
-        {/* Sidebar - fluye a la derecha */}
-        <div className="hidden md:block w-80 ml-auto">
+        {/* Sidebar separado visualmente */}
+        <div className="hidden md:block w-80 ml-4">
           <SidebarFiltros onFiltrar={aplicarFiltros} />
         </div>
       </div>
 
-      {/* Sidebar para móvil (modal) */}
+      {/* Sidebar móvil */}
       <SidebarFiltros onFiltrar={aplicarFiltros} />
 
       {/* Vista rápida */}
