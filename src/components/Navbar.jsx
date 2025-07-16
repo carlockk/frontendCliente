@@ -24,7 +24,7 @@ const Navbar = ({ onCartClick }) => {
           onClick={() => navigate("/")}
         >
           <img
-            src="https://frontpos.vercel.app/assets/possail-CUtofc2b.png"
+            src="https://frontpos.vercel.app/assets/possail-Sx_99EZk.png"
             alt="Logo PosSail"
             className="h-8 sm:h-10 object-contain"
           />
