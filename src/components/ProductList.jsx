@@ -120,7 +120,7 @@ const ProductList = () => {
       </h1>
 
       {/* Layout responsive */}
-      <div className="flex flex-col md:flex-row gap-6 justify-between">
+      <div className="flex flex-col md:flex-row gap-6 justify-between items-start">
         {/* Productos */}
         <div className="flex-1">
           {categoriasOrdenadas.map((categoria) => (
@@ -190,7 +190,7 @@ const ProductList = () => {
         </div>
 
         {/* Sidebar visible en PC */}
-        <div className="hidden md:block w-80 ml-auto">
+        <div className="hidden md:block w-80 ml-auto mt-[-24px] mr-[2px]">
   <SidebarFiltros onFiltrar={aplicarFiltros} />
 </div>
 
