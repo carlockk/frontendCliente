@@ -11,9 +11,7 @@ const ProductList = () => {
   const { dispatch } = useCart();
   const { isLogged, user } = useAuth();
   const [favoritos, setFavoritos] = useState([]);
-  const [paginaActual, setPaginaActual] = useState(1);
   const [productoVistaRapida, setProductoVistaRapida] = useState(null);
-  const productosPorPagina = 20;
   const topRef = useRef();
 
   useEffect(() => {
@@ -40,10 +38,6 @@ const ProductList = () => {
       setFavoritos([]);
     }
   }, [isLogged, user]);
-
-  useEffect(() => {
-    topRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [paginaActual]);
 
   const agregarAlCarrito = (producto) => {
     dispatch({ type: "ADD_ITEM", payload: producto });
@@ -86,50 +80,41 @@ const ProductList = () => {
       if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
       if (categoria) resultado = resultado.filter((p) => p.categoria?.nombre === categoria);
 
-      setPaginaActual(1);
       setFiltrados(resultado);
     },
     [productos, favoritos]
   );
 
-  const totalPaginas = Math.ceil(filtrados.length / productosPorPagina);
-  const productosPaginados = filtrados.slice(
-    (paginaActual - 1) * productosPorPagina,
-    paginaActual * productosPorPagina
-  );
-
-  // Agrupamos productos por categoría
-  const productosPorCategoria = productosPaginados.reduce((acc, prod) => {
+  // Agrupamos productos por categoría (ya filtrados)
+  const productosPorCategoria = filtrados.reduce((acc, prod) => {
     const cat = prod.categoria?.nombre || "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
     return acc;
   }, {});
 
-  // Orden de categorías desde localStorage
+  // Obtenemos orden desde localStorage
   const ordenCategorias = (() => {
     if (!isLogged) return [];
     const raw = localStorage.getItem(`orden_categorias_${user._id}`);
     return raw ? JSON.parse(raw) : [];
   })();
 
-  // Ordenamos categorías según el orden guardado
+  // Ordenamos las categorías por el orden guardado (por _id), pero usamos nombre
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
-  const getIndex = (nombre) => {
-    const prodConNombre = productos.find(p => p.categoria?.nombre === nombre);
-    const id = prodConNombre?.categoria?._id;
-    return ordenCategorias.indexOf(id);
-  };
+    const getIndex = (nombre) => {
+      const p = productos.find(p => p.categoria?.nombre === nombre);
+      const id = p?.categoria?._id;
+      return ordenCategorias.indexOf(id);
+    };
+    const idxA = getIndex(a);
+    const idxB = getIndex(b);
 
-  const idxA = getIndex(a);
-  const idxB = getIndex(b);
-
-  if (idxA === -1 && idxB === -1) return a.localeCompare(b);
-  if (idxA === -1) return 1;
-  if (idxB === -1) return -1;
-  return idxA - idxB;
-});
-
+    if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
@@ -201,44 +186,6 @@ const ProductList = () => {
           </div>
         ))}
 
-        {/* Paginación */}
-        <div className="flex justify-center items-center gap-2 py-6 flex-wrap">
-          <button
-            onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-            disabled={paginaActual === 1}
-            className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          >
-            « Anterior
-          </button>
-
-          {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-            .filter((num) => num === 1 || num === totalPaginas || Math.abs(paginaActual - num) <= 2)
-            .map((num, idx, arr) => (
-              <span key={num}>
-                {idx > 0 && num - arr[idx - 1] > 1 && <span className="px-1">...</span>}
-                <button
-                  onClick={() => setPaginaActual(num)}
-                  className={`px-3 py-1 rounded transition ${
-                    paginaActual === num
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {num}
-                </button>
-              </span>
-            ))}
-
-          <button
-            onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-            disabled={paginaActual === totalPaginas}
-            className="px-3 py-1 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          >
-            Siguiente »
-          </button>
-        </div>
-
-        {/* Filtros */}
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 
