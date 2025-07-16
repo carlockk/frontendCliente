@@ -85,7 +85,6 @@ const ProductList = () => {
     [productos, favoritos]
   );
 
-  // Agrupamos productos por categoría (ya filtrados)
   const productosPorCategoria = filtrados.reduce((acc, prod) => {
     const cat = prod.categoria?.nombre || "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
@@ -93,14 +92,12 @@ const ProductList = () => {
     return acc;
   }, {});
 
-  // Obtenemos orden desde localStorage
   const ordenCategorias = (() => {
     if (!isLogged) return [];
     const raw = localStorage.getItem(`orden_categorias_${user._id}`);
     return raw ? JSON.parse(raw) : [];
   })();
 
-  // Ordenamos las categorías por el orden guardado (por _id), pero usamos nombre
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
     const getIndex = (nombre) => {
       const p = productos.find(p => p.categoria?.nombre === nombre);
@@ -131,7 +128,7 @@ const ProductList = () => {
               </h2>
             )}
             <div className="px-4">
-              {productosPorCategoria[categoria].map((producto) => {
+              {productosPorCategoria[categoria].map((producto, index) => {
                 const descripcionCorta =
                   producto.descripcion?.length > 70
                     ? producto.descripcion.slice(0, 70) + "..."
@@ -142,7 +139,9 @@ const ProductList = () => {
                 return (
                   <div
                     key={producto._id}
-                    className="flex items-center justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition p-3 mb-4"
+                    className={`flex items-center justify-between py-4 ${
+                      index !== 0 ? "border-t border-dashed border-gray-300" : ""
+                    }`}
                   >
                     <img
                       src={producto.imagen_url}
@@ -185,11 +184,9 @@ const ProductList = () => {
             </div>
           </div>
         ))}
-
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 
-      {/* Vista rápida */}
       <ProductQuickView
         isOpen={!!productoVistaRapida}
         toggle={() => setProductoVistaRapida(null)}
