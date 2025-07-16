@@ -190,7 +190,7 @@ const ProductList = () => {
         </div>
 
         {/* Sidebar visible en PC */}
-        <div className="hidden md:block w-80 ml-auto mt-[-24px] mr-[2px]">
+        <div className="hidden md:block w-80 ml-auto mt-[-10px] mr-[0]">
   <SidebarFiltros onFiltrar={aplicarFiltros} />
 </div>
 
