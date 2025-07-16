@@ -139,7 +139,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
           <h3 className="font-semibold mb-2 text-gray-700">Buscar producto</h3>
           <input
             type="text"
-            placeholder="Ej: Hamburguesa"
+            placeholder="Ej: Strawberry"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full border px-2 py-1 rounded"
