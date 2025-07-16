@@ -114,78 +114,89 @@ const ProductList = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-0 py-0" ref={topRef}>
-      <h1 className="text-3xl font-bold text-gray-700 mb-6 px-4 pt-6 flex items-center gap-2">
+    <div className="max-w-7xl mx-auto px-4 py-6" ref={topRef}>
+      <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
         🧾 Menú disponible
       </h1>
 
-      <div className="flex-1 pr-0 md:pr-64">
-        {categoriasOrdenadas.map((categoria) => (
-          <div key={categoria} className="mb-10">
-            {categoria !== "sin_categoria" && (
-              <h2 className="text-xl font-semibold text-gray-600 mb-4 px-4 capitalize">
-                ••• {categoria} •••
-              </h2>
-            )}
-            <div className="px-4">
-              {productosPorCategoria[categoria].map((producto, index) => {
-                const descripcionCorta =
-                  producto.descripcion?.length > 70
-                    ? producto.descripcion.slice(0, 70) + "..."
-                    : producto.descripcion;
+      {/* Layout responsive */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Productos */}
+        <div className="flex-1">
+          {categoriasOrdenadas.map((categoria) => (
+            <div key={categoria} className="mb-10">
+              {categoria !== "sin_categoria" && (
+                <h2 className="text-xl font-semibold text-gray-600 mb-4 capitalize">
+                  ••• {categoria} •••
+                </h2>
+              )}
+              <div>
+                {productosPorCategoria[categoria].map((producto, index) => {
+                  const descripcionCorta =
+                    producto.descripcion?.length > 70
+                      ? producto.descripcion.slice(0, 70) + "..."
+                      : producto.descripcion;
 
-                const esFavorito = favoritos.includes(producto._id);
+                  const esFavorito = favoritos.includes(producto._id);
 
-                return (
-                  <div
-                    key={producto._id}
-                    className={`flex items-center justify-between py-4 ${
-                      index !== 0 ? "border-t border-dashed border-gray-300" : ""
-                    }`}
-                  >
-                    <img
-                      src={producto.imagen_url}
-                      alt={producto.nombre}
-                      className="w-20 h-20 object-cover rounded mr-4"
-                    />
-                    <div className="flex-1 text-left">
-                      <h2 className="font-semibold text-sm">{producto.nombre}</h2>
-                      <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                  return (
+                    <div
+                      key={producto._id}
+                      className={`flex items-center justify-between py-4 ${
+                        index !== 0 ? "border-t border-dashed border-gray-300" : ""
+                      }`}
+                    >
+                      <img
+                        src={producto.imagen_url}
+                        alt={producto.nombre}
+                        className="w-20 h-20 object-cover rounded mr-4"
+                      />
+                      <div className="flex-1 text-left">
+                        <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-green-600">
+                          ${producto.precio?.toLocaleString("es-CL")}
+                        </p>
+                        <button
+                          onClick={() => toggleFavorito(producto)}
+                          className={`text-xl transition hover:scale-110 ${
+                            esFavorito ? "text-red-500" : "text-gray-500"
+                          }`}
+                        >
+                          <i className="fas fa-heart"></i>
+                        </button>
+                        <button
+                          onClick={() => abrirVistaRapida(producto)}
+                          className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
+                          title="Vista rápida"
+                        >
+                          <i className="fas fa-eye"></i>
+                        </button>
+                        <button
+                          onClick={() => agregarAlCarrito(producto)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-green-600">
-                        ${producto.precio?.toLocaleString("es-CL")}
-                      </p>
-                      <button
-                        onClick={() => toggleFavorito(producto)}
-                        className={`text-xl transition hover:scale-110 ${
-                          esFavorito ? "text-red-500" : "text-gray-500"
-                        }`}
-                      >
-                        <i className="fas fa-heart"></i>
-                      </button>
-                      <button
-                        onClick={() => abrirVistaRapida(producto)}
-                        className="text-xl text-gray-500 hover:text-blue-500 transition hover:scale-110"
-                        title="Vista rápida"
-                      >
-                        <i className="fas fa-eye"></i>
-                      </button>
-                      <button
-                        onClick={() => agregarAlCarrito(producto)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-        <SidebarFiltros onFiltrar={aplicarFiltros} />
+          ))}
+        </div>
+
+        {/* Sidebar visible en PC */}
+        <div className="hidden md:block w-80">
+          <SidebarFiltros onFiltrar={aplicarFiltros} />
+        </div>
       </div>
+
+      {/* Modal móvil y botón flotante incluidos desde Sidebar */}
+      <SidebarFiltros onFiltrar={aplicarFiltros} />
 
       <ProductQuickView
         isOpen={!!productoVistaRapida}

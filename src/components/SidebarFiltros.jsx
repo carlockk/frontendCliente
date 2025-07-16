@@ -108,11 +108,12 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       <button
-        onClick={() => setMostrarMobile(true)}
-        className="block md:hidden bg-blue-600 text-white px-4 py-2 rounded mb-4"
-      >
-        Filtros
-      </button>
+  onClick={() => setMostrarMobile(true)}
+  className="fixed bottom-1/2 right-4 transform translate-y-1/2 z-50 bg-white text-gray-500 border border-gray-300 rounded-full px-4 py-2 shadow hover:bg-gray-100 md:hidden"
+>
+  🔍 Filtros
+</button>
+
 
       {mostrarMobile && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
@@ -126,9 +127,12 @@ const SidebarFiltros = ({ onFiltrar }) => {
         </div>
       )}
 
-      <div className="hidden md:block fixed right-0 top-[80px] bottom-[105px] w-64 bg-white border-l border-gray-200 overflow-y-auto z-40">
-        <div className="p-4 space-y-6">{renderSidebarContent()}</div>
-      </div>
+      <div className="hidden md:block">
+  <div className="p-4 bg-white border border-gray-200 rounded shadow space-y-6">
+    {renderSidebarContent()}
+  </div>
+</div>
+
     </>
   );
 
