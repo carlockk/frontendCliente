@@ -1,29 +1,39 @@
 // src/components/ProductQuickView.jsx
 import { useEffect } from "react";
+import clsx from "clsx";
 
-export default function ProductQuickView({ producto, onClose }) {
-  // Cerrar con tecla Esc
+export default function ProductQuickView({ isOpen, toggle, producto }) {
   useEffect(() => {
-    const escHandler = (e) => e.key === "Escape" && onClose();
+    const escHandler = (e) => e.key === "Escape" && toggle();
     window.addEventListener("keydown", escHandler);
     return () => window.removeEventListener("keydown", escHandler);
-  }, [onClose]);
+  }, [toggle]);
 
-  if (!producto) return null;
+  if (!isOpen || !producto) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-end sm:items-center justify-center"
-      onClick={onClose}
+      className={clsx(
+        "fixed inset-0 z-[9999] bg-black bg-opacity-0 transition-opacity duration-300 flex items-end sm:items-center justify-center",
+        {
+          "bg-opacity-40": isOpen,
+        }
+      )}
+      onClick={toggle}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-lg sm:rounded-lg shadow-xl w-full sm:max-w-md h-[90%] sm:h-auto transform transition-all duration-300 translate-y-0 sm:translate-x-0 sm:translate-y-0 sm:fixed sm:right-0"
+        className={clsx(
+          "bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300",
+          {
+            "translate-y-0 sm:translate-x-0 opacity-100": isOpen,
+            "translate-y-full sm:translate-x-full opacity-0": !isOpen,
+          }
+        )}
       >
-        <div className="relative p-5 overflow-y-auto h-full sm:h-auto">
-          {/* Cerrar */}
+        <div className="relative p-5">
           <button
-            onClick={onClose}
+            onClick={toggle}
             className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
             aria-label="Cerrar vista rápida"
           >
@@ -53,7 +63,9 @@ export default function ProductQuickView({ producto, onClose }) {
                   className="h-16 w-16 object-cover mx-auto rounded"
                 />
                 <p className="text-xs mt-1">{rel.nombre}</p>
-                <p className="text-xs text-green-600">${rel.precio?.toLocaleString("es-CL")}</p>
+                <p className="text-xs text-green-600">
+                  ${rel.precio?.toLocaleString("es-CL")}
+                </p>
               </div>
             ))}
           </div>

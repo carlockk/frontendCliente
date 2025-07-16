@@ -214,9 +214,11 @@ const ProductList = () => {
 
       {/* Vista rápida */}
       <ProductQuickView
-        producto={productoVistaRapida}
-        onClose={() => setProductoVistaRapida(null)}
-      />
+  isOpen={!!productoVistaRapida}
+  toggle={() => setProductoVistaRapida(null)}
+  producto={productoVistaRapida}
+/>
+
     </div>
   );
 };
