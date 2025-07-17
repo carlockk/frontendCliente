@@ -115,47 +115,42 @@ const ProductList = () => {
 
   return (
     <>
-      <div className="w-full max-w-[95%] mx-auto py-6 px-4 md:px-0" ref={topRef}>
-        <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
-          🧾 Menú disponible
-        </h1>
+      <div className="flex w-full items-start" ref={topRef}>
+        {/* Contenedor de productos */}
+        <div className="flex-1 max-w-screen-xl mx-auto px-4 py-6">
+          <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
+            🧾 Menú disponible
+          </h1>
 
-        <div className="grid md:grid-cols-[1fr_300px] gap-6">
-          {/* Productos */}
-          <div className="w-full">
-            {categoriasOrdenadas.map((categoria) => (
-              <div key={categoria} className="mb-10">
-                {categoria !== "sin_categoria" && (
-                  <h2 className="text-xl font-semibold text-gray-600 mb-4 capitalize">
-                    ••• {categoria} •••
-                  </h2>
-                )}
-                <div>
-                  {productosPorCategoria[categoria].map((producto, index) => {
-                    const descripcionCorta =
-                      producto.descripcion?.length > 70
-                        ? producto.descripcion.slice(0, 70) + "..."
-                        : producto.descripcion;
+          {categoriasOrdenadas.map((categoria) => (
+            <div key={categoria} className="mb-10">
+              {categoria !== "sin_categoria" && (
+                <h2 className="text-xl font-semibold text-gray-600 mb-4 capitalize">
+                  ••• {categoria} •••
+                </h2>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {productosPorCategoria[categoria].map((producto) => {
+                  const descripcionCorta =
+                    producto.descripcion?.length > 70
+                      ? producto.descripcion.slice(0, 70) + "..."
+                      : producto.descripcion;
+                  const esFavorito = favoritos.includes(producto._id);
 
-                    const esFavorito = favoritos.includes(producto._id);
-
-                    return (
-                      <div
-                        key={producto._id}
-                        className={`flex items-center justify-between py-4 ${
-                          index !== 0 ? "border-t border-dashed border-gray-300" : ""
-                        }`}
-                      >
-                        <img
-                          src={producto.imagen_url}
-                          alt={producto.nombre}
-                          className="w-20 h-20 object-cover rounded mr-4"
-                        />
-                        <div className="flex-1 text-left">
-                          <h2 className="font-semibold text-sm">{producto.nombre}</h2>
-                          <p className="text-xs text-gray-500">{descripcionCorta}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
+                  return (
+                    <div
+                      key={producto._id}
+                      className="border-0 border-b border-dashed border-gray-300 pb-4 mb-4 flex gap-3 items-start"
+                    >
+                      <img
+                        src={producto.imagen_url}
+                        alt={producto.nombre}
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                      <div className="flex-1">
+                        <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                        <div className="flex items-center gap-2 mt-2">
                           <p className="text-sm font-semibold text-green-600">
                             ${producto.precio?.toLocaleString("es-CL")}
                           </p>
@@ -182,31 +177,31 @@ const ProductList = () => {
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-
-          {/* Sidebar escritorio */}
-          <div className="hidden md:block w-full">
-            <SidebarFiltros onFiltrar={aplicarFiltros} />
-          </div>
+            </div>
+          ))}
         </div>
 
-        {/* Vista rápida */}
-        <ProductQuickView
-          isOpen={!!productoVistaRapida}
-          toggle={() => setProductoVistaRapida(null)}
-          producto={productoVistaRapida}
-        />
+        {/* Sidebar escritorio alineado derecha sin margen */}
+        <div className="hidden md:block w-[280px] py-6 pr-0">
+          <SidebarFiltros onFiltrar={aplicarFiltros} />
+        </div>
       </div>
 
-      {/* Sidebar móvil (se muestra al final del contenido en mobile) */}
+      {/* Sidebar móvil */}
       <div className="md:hidden px-4">
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
+
+      {/* Vista rápida */}
+      <ProductQuickView
+        isOpen={!!productoVistaRapida}
+        toggle={() => setProductoVistaRapida(null)}
+        producto={productoVistaRapida}
+      />
     </>
   );
 };
