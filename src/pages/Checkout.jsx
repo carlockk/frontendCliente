@@ -82,6 +82,44 @@ const Checkout = () => {
     }
   };
 
+  const handlePagarConStripe = async () => {
+    if (!state.items || state.items.length === 0) {
+      alert("El carrito está vacío.");
+      return navigate("/");
+    }
+
+    if (!cliente.nombre || !cliente.telefono) {
+      alert("Nombre y teléfono son obligatorios.");
+      return;
+    }
+
+    if (tipoPedido === "delivery" && !cliente.direccion) {
+      alert("Debes ingresar una dirección para delivery.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await api.post("/pagos/crear-sesion", {
+        items: state.items.map(item => ({
+          nombre: item.nombre,
+          precio: item.precio ?? item.price ?? 0,
+          cantidad: item.quantity
+        }))
+      });
+
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.error("Error al crear sesión de pago:", error);
+      alert("No se pudo iniciar el pago.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Finalizar pedido</h1>
@@ -150,13 +188,23 @@ const Checkout = () => {
         </div>
       )}
 
-      <button
-        onClick={crearOrden}
-        disabled={loading}
-        className="mt-6 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
-      >
-        {loading ? "Procesando..." : "Confirmar Pedido"}
-      </button>
+      {metodoPago === "online" ? (
+        <button
+          onClick={handlePagarConStripe}
+          disabled={loading}
+          className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Redirigiendo a Stripe..." : "Pagar con Stripe 💳"}
+        </button>
+      ) : (
+        <button
+          onClick={crearOrden}
+          disabled={loading}
+          className="mt-6 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        >
+          {loading ? "Procesando..." : "Confirmar Pedido"}
+        </button>
+      )}
     </div>
   );
 };

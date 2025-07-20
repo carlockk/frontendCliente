@@ -11,6 +11,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Compras from "./pages/Compras";
 import DetalleCompra from "./pages/DetalleCompra";
+import Success from "./pages/Success";
+import Cancel from "./pages/Cancel";
 
 const App = () => {
   return (
@@ -24,6 +26,8 @@ const App = () => {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/success" element={<Success />} />
+<Route path="/cancel" element={<Cancel />} />
               <Route
                 path="/perfil"
                 element={
