@@ -17,8 +17,8 @@ const Layout = ({ children }) => {
         </p>
         <div className="flex justify-center gap-4 text-xl text-gray-600 mt-2">
           <a href="https://facebook.com/coffeeywaffles"><i className="fab fa-facebook"></i></a>
-          <a href="#"><i className="fab fa-instagram"></i></a>
-          <a href="#"><i className="fab fa-whatsapp"></i></a>
+          <a href="https://instagram.com/coffee.waffles"><i className="fab fa-instagram"></i></a>
+          {/*<a href="#"><i className="fab fa-whatsapp"></i></a>*/}
         </div>
       </footer>
       <SlideCart isOpen={isCartOpen} toggle={toggleCart} />
