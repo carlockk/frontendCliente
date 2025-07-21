@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
       <main className="flex-grow container mx-auto px-4 py-6">{children}</main>
       <footer className="bg-black border-t mt-10 py-6 text-center text-gray-200 ">
         <p className="text-sm mb-2">
-          © {new Date().getFullYear()} Mi Empresa - Todos los derechos reservados
+          © {new Date().getFullYear()} COFFEE WAFFLES - Todos los derechos reservados
         </p>
         <div className="flex justify-center gap-4 text-xl text-gray-600 mt-2">
           <a href="https://facebook.com/coffeeywaffles"><i className="fab fa-facebook"></i></a>
