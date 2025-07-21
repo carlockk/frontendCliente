@@ -15,6 +15,13 @@ const Navbar = ({ onCartClick }) => {
     setMenuAbierto(false); // cerrar slide al navegar
   };
 
+  const handleLogout = () => {
+    const confirmar = window.confirm("¿Estás seguro de que deseas cerrar sesión?");
+    if (confirmar) {
+      logout();
+    }
+  };
+
   return (
     <nav className="bg-gray-900 shadow sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center text-white">
@@ -91,7 +98,7 @@ const Navbar = ({ onCartClick }) => {
             </button>
           ) : (
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="border border-white px-4 py-2 rounded hover:bg-white hover:text-blue-600 transition"
             >
               Cerrar sesión
@@ -155,8 +162,11 @@ const Navbar = ({ onCartClick }) => {
             ) : (
               <span
                 onClick={() => {
-                  logout();
-                  setMenuAbierto(false);
+                  const confirmar = window.confirm("¿Estás seguro de que deseas cerrar sesión?");
+                  if (confirmar) {
+                    logout();
+                    setMenuAbierto(false);
+                  }
                 }}
                 className="block cursor-pointer hover:text-blue-600"
               >
