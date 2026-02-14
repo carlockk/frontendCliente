@@ -1,24 +1,36 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../api";
 import { useParams } from "react-router-dom";
+import { useLocal } from "../contexts/LocalContext";
 
 const DetalleCompra = () => {
   const { id } = useParams();
   const [venta, setVenta] = useState(null);
+  const [loading, setLoading] = useState(true);
   const ticketRef = useRef();
+  const { locales } = useLocal();
 
   useEffect(() => {
     const obtenerDetalle = async () => {
       try {
         const token = JSON.parse(localStorage.getItem("user"))?.token;
-        const res = await api.get(`/ventasCliente/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setVenta(res.data);
+        if (token) {
+          const res = await api.get(`/ventasCliente/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          setVenta(res.data);
+          return;
+        }
+
+        const locales = JSON.parse(localStorage.getItem("ventas_local") || "[]");
+        const encontrada = locales.find((v) => v._id === id) || null;
+        setVenta(encontrada);
       } catch (err) {
         console.error("Error al cargar detalle:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -47,7 +59,12 @@ const DetalleCompra = () => {
     win.print();
   };
 
-  if (!venta) return <p className="text-center mt-10">Cargando detalle...</p>;
+  if (loading) return <p className="text-center mt-10">Cargando detalle...</p>;
+  if (!venta) return <p className="text-center mt-10">Compra no encontrada.</p>;
+  const localNombre =
+    venta.local_nombre ||
+    locales.find((l) => l._id === venta.local)?.nombre ||
+    "";
 
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded shadow">
@@ -56,6 +73,7 @@ const DetalleCompra = () => {
           🧾 Detalle de Compra #{venta.numero_pedido || venta._id.slice(-5)}
         </h2>
         <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
+        {localNombre && <p><strong>Local:</strong> {localNombre}</p>}
         <p><strong>Pago:</strong> {venta.tipo_pago}</p>
 
         <table className="w-full mt-4 border-t">

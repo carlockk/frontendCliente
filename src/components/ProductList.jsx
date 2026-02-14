@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import api from "../api";
 import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useLocal } from "../contexts/LocalContext";
 import SidebarFiltros from "../components/SidebarFiltros";
 import ProductQuickView from "../components/ProductQuickView";
 
@@ -10,11 +11,18 @@ const ProductList = () => {
   const [filtrados, setFiltrados] = useState([]);
   const { dispatch } = useCart();
   const { isLogged, user } = useAuth();
+  const { localId } = useLocal();
   const [favoritos, setFavoritos] = useState([]);
   const [productoVistaRapida, setProductoVistaRapida] = useState(null);
+  const [imagenActiva, setImagenActiva] = useState(null);
   const topRef = useRef();
 
   useEffect(() => {
+    if (!localId) {
+      setProductos([]);
+      setFiltrados([]);
+      return;
+    }
     const fetchProductos = async () => {
       try {
         const res = await api.get("/productos");
@@ -28,34 +36,43 @@ const ProductList = () => {
       }
     };
     fetchProductos();
-  }, []);
+  }, [localId]);
 
   useEffect(() => {
-    if (isLogged) {
+    if (isLogged && user?._id) {
       const guardados = localStorage.getItem(`favoritos_${user._id}`);
       setFavoritos(guardados ? JSON.parse(guardados) : []);
     } else {
-      setFavoritos([]);
+      const guardados = localStorage.getItem("favoritos_guest");
+      setFavoritos(guardados ? JSON.parse(guardados) : []);
     }
   }, [isLogged, user]);
+
+  useEffect(() => {
+    if (!imagenActiva) return;
+    const escHandler = (e) => {
+      if (e.key === "Escape") setImagenActiva(null);
+    };
+    window.addEventListener("keydown", escHandler);
+    return () => window.removeEventListener("keydown", escHandler);
+  }, [imagenActiva]);
 
   const agregarAlCarrito = (producto) => {
     dispatch({ type: "ADD_ITEM", payload: producto });
   };
 
   const toggleFavorito = (producto) => {
-    if (!isLogged) {
-      alert("Debes iniciar sesión para agregar productos a favoritos.");
-      return;
-    }
-
     const yaEsta = favoritos.includes(producto._id);
     const nuevos = yaEsta
       ? favoritos.filter((id) => id !== producto._id)
       : [...favoritos, producto._id];
 
     setFavoritos(nuevos);
-    localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
+    if (isLogged && user?._id) {
+      localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
+    } else {
+      localStorage.setItem("favoritos_guest", JSON.stringify(nuevos));
+    }
 
     let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
     vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
@@ -121,6 +138,11 @@ const ProductList = () => {
           <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
             🧾 Menú disponible
           </h1>
+          {!localId && (
+            <div className="mb-6 rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+              Debes seleccionar un local para ver categorías y productos.
+            </div>
+          )}
 
           {categoriasOrdenadas.map((categoria) => (
             <div key={categoria} className="mb-10">
@@ -146,6 +168,8 @@ const ProductList = () => {
                         src={producto.imagen_url}
                         alt={producto.nombre}
                         className="w-20 h-20 object-cover rounded"
+                        onClick={() => setImagenActiva(producto)}
+                        title="Ver imagen completa"
                       />
                       <div className="flex-1">
                         <h2 className="font-semibold text-sm">{producto.nombre}</h2>
@@ -159,6 +183,7 @@ const ProductList = () => {
                             className={`text-xl transition hover:scale-110 ${
                               esFavorito ? "text-red-500" : "text-gray-500"
                             }`}
+                            title="Agregar a favoritos"
                           >
                             <i className="fas fa-heart"></i>
                           </button>
@@ -172,6 +197,7 @@ const ProductList = () => {
                           <button
                             onClick={() => agregarAlCarrito(producto)}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                            title="Agregar al carrito"
                           >
                             +
                           </button>
@@ -202,6 +228,36 @@ const ProductList = () => {
         toggle={() => setProductoVistaRapida(null)}
         producto={productoVistaRapida}
       />
+
+      {imagenActiva && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 p-4"
+          onClick={() => setImagenActiva(null)}
+        >
+          <div
+            className="max-w-3xl w-full bg-white rounded shadow-lg p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">
+                {imagenActiva.nombre}
+              </h3>
+              <button
+                onClick={() => setImagenActiva(null)}
+                className="text-gray-600 hover:text-black text-xl"
+                aria-label="Cerrar imagen"
+              >
+                ✕
+              </button>
+            </div>
+            <img
+              src={imagenActiva.imagen_url}
+              alt={imagenActiva.nombre}
+              className="w-full h-auto max-h-[70vh] object-contain rounded"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };

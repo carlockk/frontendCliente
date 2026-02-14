@@ -12,4 +12,16 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const envLocalId = import.meta.env.VITE_LOCAL_ID;
+  const storedLocalId = localStorage.getItem("local_id");
+  const localId = storedLocalId || envLocalId;
+
+  if (localId) {
+    config.headers["x-local-id"] = localId;
+  }
+
+  return config;
+});
+
 export default api;

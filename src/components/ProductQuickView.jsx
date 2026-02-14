@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../contexts/cart/CartContext";
 
-export default function ProductQuickView({ isOpen, toggle, producto }) {
+export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFavorite }) {
   const [showAnimation, setShowAnimation] = useState(false);
   const [cantidad, setCantidad] = useState(1);
   const { dispatch } = useCart();
@@ -70,6 +70,14 @@ export default function ProductQuickView({ isOpen, toggle, producto }) {
           <p className="text-green-600 font-semibold text-base mb-4">
             ${producto.precio?.toLocaleString("es-CL")}
           </p>
+          {onRemoveFavorite && (
+            <button
+              onClick={() => onRemoveFavorite(producto._id)}
+              className="mb-4 text-sm text-red-600 hover:text-red-700 hover:underline"
+            >
+              Quitar de favoritos
+            </button>
+          )}
 
           {/* Cantidad + botón agregar */}
           <div className="flex items-center justify-between gap-3 mb-5">

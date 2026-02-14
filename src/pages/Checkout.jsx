@@ -3,10 +3,12 @@ import api from "../api";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useLocal } from "../contexts/LocalContext";
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const { user } = useAuth();
+  const { localId, locales } = useLocal();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -77,15 +79,42 @@ const Checkout = () => {
 
       const total = productos.reduce((sum, p) => sum + p.subtotal, 0);
 
-      const res = await api.post("/ventasCliente", {
-        productos,
-        total,
-        tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
-        cliente_email: cliente.correo || user?.email || "sincorreo",
-      });
+      const localInfo = locales.find((l) => l._id === localId) || null;
+      const localNombre = localInfo?.nombre || "";
 
-      dispatch({ type: "CLEAR_CART" });
-      navigate(`/compras/detalle/${res.data._id}`);
+      if (user?.token) {
+        const res = await api.post("/ventasCliente", {
+          productos,
+          total,
+          tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
+          cliente_email: cliente.correo || user?.email || "sincorreo",
+          local: localId || null,
+        });
+
+        dispatch({ type: "CLEAR_CART" });
+        navigate(`/compras/detalle/${res.data._id}`);
+      } else {
+        const guestId = `local_${Date.now().toString(36)}`;
+        const ordenLocal = {
+          _id: guestId,
+          numero_pedido: guestId.slice(-5).toUpperCase(),
+          fecha: new Date().toISOString(),
+          tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
+          cliente: {
+            ...cliente,
+          },
+          productos,
+          total,
+          local: localId || null,
+          local_nombre: localNombre,
+        };
+
+        const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
+        localStorage.setItem("ventas_local", JSON.stringify([ordenLocal, ...prev]));
+
+        dispatch({ type: "CLEAR_CART" });
+        navigate(`/compras/detalle/${guestId}`);
+      }
     } catch (err) {
       console.error("Error al guardar venta:", err);
       alert("No se pudo procesar el pedido.");

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../api";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useAuth } from "../contexts/AuthContext";
+import { useLocal } from "../contexts/LocalContext";
 
 const SidebarFiltros = ({ onFiltrar }) => {
   const [categorias, setCategorias] = useState([]);
@@ -11,10 +12,12 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
   const [vistosRecientes, setVistosRecientes] = useState([]);
-  const [mostrarMobile, setMostrarMobile] = useState(false);
+  const [filtrosVisible, setFiltrosVisible] = useState(false);
+  const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [toast, setToast] = useState("");
 
   const { user } = useAuth();
+  const { localId } = useLocal();
 
   const mostrarToast = (mensaje) => {
     setToast(mensaje);
@@ -33,6 +36,10 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
   useEffect(() => {
     const fetchCategorias = async () => {
+      if (!localId) {
+        setCategorias([]);
+        return;
+      }
       try {
         const res = await api.get("/categorias");
         const ordenGuardado = localStorage.getItem(`orden_categorias_${user?._id}`);
@@ -55,7 +62,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
     const vistos = localStorage.getItem("productos_vistos");
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, [user]);
+  }, [user, localId]);
 
   useEffect(() => {
     aplicarFiltros();
@@ -91,12 +98,26 @@ const SidebarFiltros = ({ onFiltrar }) => {
   const restablecerOrden = async () => {
     try {
       localStorage.removeItem(`orden_categorias_${user._id}`);
+      if (!localId) {
+        setCategorias([]);
+        return;
+      }
       const res = await api.get("/categorias");
       setCategorias(res.data);
       mostrarToast("🔄 Orden original restaurado");
     } catch (error) {
       console.error("Error al restablecer orden:", error);
     }
+  };
+
+  const abrirFiltros = () => {
+    setFiltrosVisible(true);
+    requestAnimationFrame(() => setFiltrosOpen(true));
+  };
+
+  const cerrarFiltros = () => {
+    setFiltrosOpen(false);
+    setTimeout(() => setFiltrosVisible(false), 200);
   };
 
   return (
@@ -108,19 +129,29 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       <button
-  onClick={() => setMostrarMobile(true)}
+  onClick={abrirFiltros}
   className="fixed bottom-1/2 right-4 transform translate-y-1/2 z-50 bg-white text-gray-500 border border-gray-300 rounded-full px-4 py-2 shadow hover:bg-gray-100 md:hidden"
 >
   🔍 Filtros
 </button>
 
 
-      {mostrarMobile && (
-        <div className="fixed inset-0 z-[9999] bg-black bg-opacity-40 flex justify-end md:hidden">
-          <div className="bg-white w-72 h-full p-4 overflow-y-auto shadow-lg">
+      {filtrosVisible && (
+        <div
+          className={`fixed inset-0 z-[9999] flex justify-end md:hidden transition-opacity duration-200 ${
+            filtrosOpen ? "bg-black bg-opacity-40" : "bg-black bg-opacity-0"
+          }`}
+          onClick={cerrarFiltros}
+        >
+          <div
+            className={`bg-white w-72 h-full p-4 overflow-y-auto shadow-lg transform transition-transform duration-200 ease-out ${
+              filtrosOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Filtros</h2>
-              <button onClick={() => setMostrarMobile(false)}>✕</button>
+              <button onClick={cerrarFiltros}>✕</button>
             </div>
             {renderSidebarContent()}
           </div>
@@ -152,6 +183,11 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
         <div>
           <h3 className="font-semibold mb-2 text-gray-700">Categorías</h3>
+          {!localId && (
+            <p className="text-xs text-gray-500 mb-2">
+              Selecciona un local para cargar las categorías.
+            </p>
+          )}
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="categorias">
               {(provided) => (

@@ -1,11 +1,9 @@
 import { useCart } from "../contexts/cart/CartContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 
 export default function SlideCart({ isOpen, toggle }) {
   const { state, dispatch } = useCart();
-  const { isLogged } = useAuth();
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
@@ -15,12 +13,6 @@ export default function SlideCart({ isOpen, toggle }) {
   };
 
   const handleCheckout = () => {
-    if (!isLogged) {
-      alert("Debes iniciar sesión para continuar con el pago.");
-      navigate("/");
-      toggle(); // cerrar el slide del carrito
-      return;
-    }
     navigate("/checkout");
     toggle(); // cerrar el slide si está abierto
   };
