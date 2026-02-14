@@ -104,6 +104,31 @@ const Navbar = ({ onCartClick }) => {
             </span>
           )}
 
+          {/* Selector de local */}
+          <div className="hidden md:flex items-center gap-2 text-xs">
+            <span className="text-gray-300">Elige un local para comprar</span>
+            <div className="flex flex-col">
+              <select
+                className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 text-xs"
+                value={localId || ""}
+                onChange={(e) => selectLocal(e.target.value)}
+                disabled={loadingLocales}
+              >
+                <option value="">
+                  {loadingLocales ? "Cargando locales..." : "Selecciona un local"}
+                </option>
+                {locales.map((local) => (
+                  <option key={local._id} value={local._id}>
+                    {local.nombre}
+                  </option>
+                ))}
+              </select>
+              {errorLocales && (
+                <span className="text-[10px] text-red-300">{errorLocales}</span>
+              )}
+            </div>
+          </div>
+
           <span onClick={() => navigate("/")} className="cursor-pointer hover:underline">
             Menú
           </span>
@@ -161,30 +186,6 @@ const Navbar = ({ onCartClick }) => {
             </button>
           )}
 
-          {/* Selector de local */}
-          <div className="hidden md:flex items-center gap-2 text-xs">
-            <span className="text-gray-300">Elige un local para comprar</span>
-            <div className="flex flex-col">
-              <select
-                className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 text-xs"
-                value={localId || ""}
-                onChange={(e) => selectLocal(e.target.value)}
-                disabled={loadingLocales}
-              >
-                <option value="">
-                  {loadingLocales ? "Cargando locales..." : "Selecciona un local"}
-                </option>
-                {locales.map((local) => (
-                  <option key={local._id} value={local._id}>
-                    {local.nombre}
-                  </option>
-                ))}
-              </select>
-              {errorLocales && (
-                <span className="text-[10px] text-red-300">{errorLocales}</span>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
