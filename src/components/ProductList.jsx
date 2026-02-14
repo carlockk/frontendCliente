@@ -58,6 +58,12 @@ const ProductList = () => {
   }, [imagenActiva]);
 
   const agregarAlCarrito = (producto) => {
+    const tieneVariantes =
+      Array.isArray(producto.variantes) && producto.variantes.length > 0;
+    if (tieneVariantes) {
+      abrirVistaRapida(producto);
+      return;
+    }
     dispatch({ type: "ADD_ITEM", payload: producto });
   };
 
@@ -158,6 +164,8 @@ const ProductList = () => {
                       ? producto.descripcion.slice(0, 70) + "..."
                       : producto.descripcion;
                   const esFavorito = favoritos.includes(producto._id);
+                  const tieneVariantes =
+                    Array.isArray(producto.variantes) && producto.variantes.length > 0;
 
                   return (
                     <div
@@ -174,6 +182,15 @@ const ProductList = () => {
                       <div className="flex-1">
                         <h2 className="font-semibold text-sm">{producto.nombre}</h2>
                         <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                        <p
+                          className={`text-[11px] mt-1 ${
+                            tieneVariantes ? "text-blue-600" : "text-gray-400"
+                          }`}
+                        >
+                          {tieneVariantes
+                            ? `${producto.variantes.length} variación(es) disponible(s)`
+                            : "Producto sin variaciones"}
+                        </p>
                         <div className="flex items-center gap-2 mt-2">
                           <p className="text-sm font-semibold text-green-600">
                             ${producto.precio?.toLocaleString("es-CL")}

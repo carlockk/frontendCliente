@@ -55,6 +55,12 @@ const Favoritos = () => {
   const favoritosFiltrados = productos.filter((p) => favoritosIds.includes(p._id));
 
   const agregarAlCarrito = (producto) => {
+    const tieneVariantes =
+      Array.isArray(producto.variantes) && producto.variantes.length > 0;
+    if (tieneVariantes) {
+      abrirVistaRapida(producto);
+      return;
+    }
     dispatch({ type: "ADD_ITEM", payload: producto });
   };
 

@@ -7,22 +7,35 @@ const initialState = {
   total: 0,
 };
 
+const getCartItemId = (item) =>
+  item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`;
+
 const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADD_ITEM": {
       const cantidad = action.payload.cantidad || 1;
+      const idCarrito =
+        action.payload.idCarrito ||
+        `${action.payload._id}::${
+          action.payload.varianteId || action.payload.varianteKey || "base"
+        }`;
       const precio = action.payload.precio ?? action.payload.price ?? 0;
-      const existing = state.items.find(item => item._id === action.payload._id);
+      const existing = state.items.find(
+        (item) => getCartItemId(item) === idCarrito
+      );
       let updatedItems;
 
       if (existing) {
-        updatedItems = state.items.map(item =>
-          item._id === action.payload._id
-            ? { ...item, quantity: item.quantity + cantidad }
+        updatedItems = state.items.map((item) =>
+          getCartItemId(item) === idCarrito
+            ? { ...item, idCarrito, quantity: item.quantity + cantidad }
             : item
         );
       } else {
-        updatedItems = [...state.items, { ...action.payload, quantity: cantidad }];
+        updatedItems = [
+          ...state.items,
+          { ...action.payload, idCarrito, quantity: cantidad },
+        ];
       }
 
       const newTotal = updatedItems.reduce(
@@ -37,7 +50,9 @@ const cartReducer = (state, action) => {
     }
 
     case "REMOVE_ITEM": {
-      const updatedItems = state.items.filter(item => item._id !== action.payload);
+      const updatedItems = state.items.filter(
+        (item) => getCartItemId(item) !== action.payload
+      );
       const newTotal = updatedItems.reduce(
         (acc, item) => acc + (item.precio ?? item.price ?? 0) * item.quantity,
         0
@@ -46,8 +61,8 @@ const cartReducer = (state, action) => {
     }
 
     case "INCREMENT_ITEM": {
-      const updatedItems = state.items.map(item =>
-        item._id === action.payload
+      const updatedItems = state.items.map((item) =>
+        getCartItemId(item) === action.payload
           ? { ...item, quantity: item.quantity + 1 }
           : item
       );
@@ -60,8 +75,8 @@ const cartReducer = (state, action) => {
 
     case "DECREMENT_ITEM": {
       const updatedItems = state.items
-        .map(item =>
-          item._id === action.payload && item.quantity > 1
+        .map((item) =>
+          getCartItemId(item) === action.payload && item.quantity > 1
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )

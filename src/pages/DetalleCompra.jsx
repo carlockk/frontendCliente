@@ -88,7 +88,12 @@ const DetalleCompra = () => {
           <tbody>
             {venta.productos.map((prod, i) => (
               <tr key={i} className="border-b">
-                <td>{prod.nombre}</td>
+                <td>
+                  {prod.nombre}
+                  {prod.variante_nombre && (
+                    <p className="text-xs text-gray-500">Variación: {prod.variante_nombre}</p>
+                  )}
+                </td>
                 <td>{prod.cantidad}</td>
                 <td>${prod.precio_unitario.toLocaleString("es-CL")}</td>
                 <td>${prod.subtotal.toLocaleString("es-CL")}</td>

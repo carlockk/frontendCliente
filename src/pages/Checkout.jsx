@@ -72,6 +72,8 @@ const Checkout = () => {
     try {
       const productos = state.items.map((item) => ({
         nombre: item.nombre,
+        variante_id: item.varianteId || null,
+        variante_nombre: item.varianteNombre || "",
         cantidad: item.quantity,
         precio_unitario: item.precio ?? item.price ?? 0,
         subtotal: (item.precio ?? item.price ?? 0) * item.quantity,
@@ -131,7 +133,9 @@ const Checkout = () => {
     try {
       const response = await api.post("/pagos/crear-sesion", {
         items: state.items.map((item) => ({
-          nombre: item.nombre,
+          nombre: item.varianteNombre
+            ? `${item.nombre} (${item.varianteNombre})`
+            : item.nombre,
           precio: item.precio ?? item.price ?? 0,
           cantidad: item.quantity,
         })),
@@ -157,7 +161,10 @@ const Checkout = () => {
         <div>
           <h2 className="text-xl font-semibold mb-4">Resumen del carrito</h2>
           {state.items.map((item) => (
-            <div key={item._id} className="flex gap-4 border-b py-3 items-center">
+            <div
+              key={item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`}
+              className="flex gap-4 border-b py-3 items-center"
+            >
               {item.imagen_url && (
                 <img
                   src={item.imagen_url}
@@ -169,6 +176,11 @@ const Checkout = () => {
                 <span className="block text-sm font-semibold">
                   {item.nombre} x {item.quantity}
                 </span>
+                {item.varianteNombre && (
+                  <span className="block text-xs text-gray-500">
+                    Variación: {item.varianteNombre}
+                  </span>
+                )}
                 <span className="block text-sm text-gray-600">
                   ${((item.precio ?? item.price ?? 0) * item.quantity).toLocaleString("es-CL")}
                 </span>

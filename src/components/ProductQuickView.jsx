@@ -4,12 +4,14 @@ import { useCart } from "../contexts/cart/CartContext";
 export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFavorite }) {
   const [showAnimation, setShowAnimation] = useState(false);
   const [cantidad, setCantidad] = useState(1);
+  const [varianteSeleccionadaKey, setVarianteSeleccionadaKey] = useState("");
   const { dispatch } = useCart();
 
   useEffect(() => {
     if (isOpen) {
       setShowAnimation(false);
       setCantidad(1); // Reiniciar cantidad cada vez que abre
+      setVarianteSeleccionadaKey("");
       const timeout = setTimeout(() => setShowAnimation(true), 10);
       return () => clearTimeout(timeout);
     } else {
@@ -24,12 +26,45 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
   }, [toggle]);
 
   if (!isOpen || !producto) return null;
+  const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
+  const tieneVariantes = variantes.length > 0;
+  const getVarianteKey = (v, idx) => String(v?._id || `idx-${idx}`);
+  const varianteSeleccionadaIndice = variantes.findIndex(
+    (v, idx) => getVarianteKey(v, idx) === varianteSeleccionadaKey
+  );
+  const varianteSeleccionada =
+    varianteSeleccionadaIndice >= 0 ? variantes[varianteSeleccionadaIndice] : null;
 
   const agregarAlCarrito = () => {
+    if (tieneVariantes && !varianteSeleccionada) {
+      alert("Debes elegir una variación.");
+      return;
+    }
+
+    const precioFinal =
+      typeof varianteSeleccionada?.precio === "number"
+        ? varianteSeleccionada.precio
+        : producto.precio;
+
     dispatch({
       type: "ADD_ITEM",
       payload: {
         ...producto,
+        precio: precioFinal,
+        varianteId: varianteSeleccionada?._id || null,
+        varianteKey: varianteSeleccionadaKey || null,
+        varianteNombre: varianteSeleccionada
+          ? [
+              varianteSeleccionada.nombre,
+              varianteSeleccionada.color,
+              varianteSeleccionada.talla,
+            ]
+              .filter(Boolean)
+              .join(" - ")
+          : null,
+        idCarrito: `${producto._id}::${
+          varianteSeleccionada?._id || varianteSeleccionadaKey || "base"
+        }`,
         cantidad: cantidad,
       },
     });
@@ -70,6 +105,35 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
           <p className="text-green-600 font-semibold text-base mb-4">
             ${producto.precio?.toLocaleString("es-CL")}
           </p>
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">Variaciones</h3>
+            {tieneVariantes ? (
+              <ul className="space-y-2">
+                {variantes.map((v, idx) => (
+                  <li key={v._id || `${producto._id}-var-${idx}`} className="text-xs text-gray-600">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`variante-${producto._id}`}
+                        checked={varianteSeleccionadaKey === getVarianteKey(v, idx)}
+                        onChange={() => setVarianteSeleccionadaKey(getVarianteKey(v, idx))}
+                      />
+                      <span>
+                        {v.nombre}
+                        {v.color ? ` - ${v.color}` : ""}
+                        {v.talla ? ` - ${v.talla}` : ""}
+                        {typeof v.precio === "number"
+                          ? ` - $${v.precio.toLocaleString("es-CL")}`
+                          : ""}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-gray-400">Producto sin variaciones</p>
+            )}
+          </div>
           {onRemoveFavorite && (
             <button
               onClick={() => onRemoveFavorite(producto._id)}

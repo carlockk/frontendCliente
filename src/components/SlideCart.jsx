@@ -8,6 +8,9 @@ export default function SlideCart({ isOpen, toggle }) {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
 
+  const getCartItemId = (item) =>
+    item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`;
+
   const vaciarCarrito = () => {
     dispatch({ type: "CLEAR_CART" });
   };
@@ -59,15 +62,18 @@ export default function SlideCart({ isOpen, toggle }) {
               ) : (
                 state.items.map((item) => (
                   <div
-                    key={item._id}
+                    key={getCartItemId(item)}
                     className="mb-4 flex justify-between items-center border-b pb-2"
                   >
                     <div>
                       <p className="font-medium">{item.nombre}</p>
+                      {item.varianteNombre && (
+                        <p className="text-xs text-gray-500">Variación: {item.varianteNombre}</p>
+                      )}
                       <div className="flex items-center gap-3 mt-1">
                         <button
                           onClick={() =>
-                            dispatch({ type: "DECREMENT_ITEM", payload: item._id })
+                            dispatch({ type: "DECREMENT_ITEM", payload: getCartItemId(item) })
                           }
                           className="text-gray-500 text-xl px-2 hover:text-gray-700"
                         >
@@ -78,7 +84,7 @@ export default function SlideCart({ isOpen, toggle }) {
                         </span>
                         <button
                           onClick={() =>
-                            dispatch({ type: "INCREMENT_ITEM", payload: item._id })
+                            dispatch({ type: "INCREMENT_ITEM", payload: getCartItemId(item) })
                           }
                           className="text-gray-500 text-xl px-2 hover:text-gray-700"
                         >
@@ -93,7 +99,7 @@ export default function SlideCart({ isOpen, toggle }) {
                       <button
                         className="text-red-500 text-sm hover:underline mt-1"
                         onClick={() =>
-                          dispatch({ type: "REMOVE_ITEM", payload: item._id })
+                          dispatch({ type: "REMOVE_ITEM", payload: getCartItemId(item) })
                         }
                       >
                         Quitar
