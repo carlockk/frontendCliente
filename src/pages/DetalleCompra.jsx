@@ -65,6 +65,8 @@ const DetalleCompra = () => {
     venta.local_nombre ||
     locales.find((l) => l._id === venta.local)?.nombre ||
     "";
+  const estadoRaw = venta.estado_pedido || venta.estado || venta.status || "pendiente";
+  const estado = String(estadoRaw).toLowerCase();
 
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded shadow">
@@ -75,6 +77,22 @@ const DetalleCompra = () => {
         <p><strong>Fecha:</strong> {new Date(venta.fecha).toLocaleString()}</p>
         {localNombre && <p><strong>Local:</strong> {localNombre}</p>}
         <p><strong>Pago:</strong> {venta.tipo_pago}</p>
+        <p>
+          <strong>Estado:</strong>{" "}
+          <span
+            className={`text-xs px-2 py-1 rounded ${
+              estado === "aceptado" || estado === "preparando" || estado === "listo"
+                ? "bg-blue-100 text-blue-700"
+                : estado === "entregado"
+                ? "bg-green-100 text-green-700"
+                : estado === "rechazado" || estado === "cancelado"
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {estadoRaw}
+          </span>
+        </p>
 
         <table className="w-full mt-4 border-t">
           <thead>
@@ -90,8 +108,15 @@ const DetalleCompra = () => {
               <tr key={i} className="border-b">
                 <td>
                   {prod.nombre}
-                  {prod.variante_nombre && (
-                    <p className="text-xs text-gray-500">Variación: {prod.variante_nombre}</p>
+                  {(prod.varianteNombre || prod.variante_nombre) && (
+                    <p className="text-xs text-gray-500">
+                      Variación: {prod.varianteNombre || prod.variante_nombre}
+                    </p>
+                  )}
+                  {Array.isArray(prod.agregados) && prod.agregados.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Agregados: {prod.agregados.map((agg) => agg.nombre).join(", ")}
+                    </p>
                   )}
                 </td>
                 <td>{prod.cantidad}</td>

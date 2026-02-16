@@ -4,8 +4,20 @@ import { Link } from "react-router-dom";
 const Cart = () => {
   const { state, dispatch } = useCart();
 
+  const getAgregadosKey = (agregados = []) =>
+    Array.isArray(agregados) && agregados.length > 0
+      ? agregados
+          .map((agg) => String(agg?.agregadoId || agg?._id || agg?.nombre || ""))
+          .filter(Boolean)
+          .sort()
+          .join("|")
+      : "sin-agregados";
+
   const getCartItemId = (item) =>
-    item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`;
+    item.idCarrito ||
+    `${item._id}::${item.varianteId || item.varianteKey || "base"}::${getAgregadosKey(
+      item.agregados
+    )}`;
 
   const handleRemove = (id) => {
     dispatch({ type: "REMOVE_ITEM", payload: id });
@@ -26,6 +38,11 @@ const Cart = () => {
                   <p className="font-semibold">{item.nombre}</p>
                   {item.varianteNombre && (
                     <p className="text-xs text-gray-500">Variación: {item.varianteNombre}</p>
+                  )}
+                  {Array.isArray(item.agregados) && item.agregados.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
+                    </p>
                   )}
                   <p className="text-sm text-gray-500">
                     ${item.precio?.toLocaleString("es-CL")} x {item.quantity}

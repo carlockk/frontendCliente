@@ -8,8 +8,20 @@ export default function SlideCart({ isOpen, toggle }) {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
 
+  const getAgregadosKey = (agregados = []) =>
+    Array.isArray(agregados) && agregados.length > 0
+      ? agregados
+          .map((agg) => String(agg?.agregadoId || agg?._id || agg?.nombre || ""))
+          .filter(Boolean)
+          .sort()
+          .join("|")
+      : "sin-agregados";
+
   const getCartItemId = (item) =>
-    item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`;
+    item.idCarrito ||
+    `${item._id}::${item.varianteId || item.varianteKey || "base"}::${getAgregadosKey(
+      item.agregados
+    )}`;
 
   const vaciarCarrito = () => {
     dispatch({ type: "CLEAR_CART" });
@@ -69,6 +81,11 @@ export default function SlideCart({ isOpen, toggle }) {
                       <p className="font-medium">{item.nombre}</p>
                       {item.varianteNombre && (
                         <p className="text-xs text-gray-500">Variación: {item.varianteNombre}</p>
+                      )}
+                      {Array.isArray(item.agregados) && item.agregados.length > 0 && (
+                        <p className="text-xs text-gray-500">
+                          Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
+                        </p>
                       )}
                       <div className="flex items-center gap-3 mt-1">
                         <button

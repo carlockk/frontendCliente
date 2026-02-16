@@ -28,6 +28,15 @@ const Checkout = () => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
   };
 
+  const getAgregadosKey = (agregados = []) =>
+    Array.isArray(agregados) && agregados.length > 0
+      ? agregados
+          .map((agg) => String(agg?.agregadoId || agg?._id || agg?.nombre || ""))
+          .filter(Boolean)
+          .sort()
+          .join("|")
+      : "sin-agregados";
+
   const validarFormulario = (esPagoOnline = false) => {
     if (!state.items || state.items.length === 0) {
       alert("El carrito está vacío.");
@@ -37,6 +46,11 @@ const Checkout = () => {
 
     if (!cliente.nombre || !cliente.telefono) {
       alert("Nombre y teléfono son obligatorios.");
+      return false;
+    }
+
+    if (!localId) {
+      alert("Debes seleccionar un local para continuar.");
       return false;
     }
 
@@ -70,42 +84,92 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const productos = state.items.map((item) => ({
+      const productosCliente = state.items.map((item) => ({
         nombre: item.nombre,
-        variante_id: item.varianteId || null,
-        variante_nombre: item.varianteNombre || "",
+        varianteId: item.varianteId || null,
+        varianteNombre: item.varianteNombre || "",
+        agregados: Array.isArray(item.agregados) ? item.agregados : [],
         cantidad: item.quantity,
         precio_unitario: item.precio ?? item.price ?? 0,
         subtotal: (item.precio ?? item.price ?? 0) * item.quantity,
       }));
 
-      const total = productos.reduce((sum, p) => sum + p.subtotal, 0);
+      const total = productosCliente.reduce((sum, p) => sum + p.subtotal, 0);
 
       const localInfo = locales.find((l) => l._id === localId) || null;
       const localNombre = localInfo?.nombre || "";
+      const tipoPagoFinal =
+        metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago;
+      const detalleCliente = `WEB - ${cliente.nombre} - ${cliente.telefono}`;
+
+      const productosPos = state.items.map((item) => ({
+        productoId: item._id,
+        nombre: item.nombre,
+        precio_unitario: item.precio ?? item.price ?? 0,
+        cantidad: item.quantity,
+        observacion: detalleCliente,
+        varianteId: item.varianteId || null,
+        varianteNombre: item.varianteNombre || "",
+        agregados: Array.isArray(item.agregados) ? item.agregados : [],
+      }));
+
+      const construirNumeroLocal = () =>
+        `W${Date.now().toString().slice(-6)}`;
+
+      const construirTicketPayload = (numeroPedido) => ({
+        nombre: `WEB #${numeroPedido} - ${cliente.nombre} (${cliente.telefono})`,
+        total,
+        productos: productosPos,
+      });
+
+      // Venta operativa del POS: deja trazabilidad en dashboard/historial del local.
+      const ventaPos = await api.post("/ventas", {
+        productos: productosPos,
+        total,
+        tipo_pago: tipoPagoFinal,
+        tipo_pedido: `web_${tipoPedido}`,
+      });
 
       if (user?.token) {
         const res = await api.post("/ventasCliente", {
-          productos,
+          productos: productosCliente,
           total,
-          tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
+          tipo_pago: tipoPagoFinal,
           cliente_email: cliente.correo || user?.email || "sincorreo",
+          cliente_nombre: cliente.nombre,
+          cliente_telefono: cliente.telefono,
           local: localId || null,
         });
+
+        try {
+          await api.post(
+            "/tickets",
+            construirTicketPayload(
+              ventaPos.data?.numero_pedido || res.data.numero_pedido || res.data._id?.slice(-5)
+            )
+          );
+        } catch (ticketErr) {
+          console.error("Error al notificar ticket a cocina:", ticketErr);
+          alert("Pedido registrado, pero no se pudo notificar automáticamente a cocina/recepción.");
+        }
 
         dispatch({ type: "CLEAR_CART" });
         navigate(`/compras/detalle/${res.data._id}`);
       } else {
         const guestId = `local_${Date.now().toString(36)}`;
+        const numeroPedido = construirNumeroLocal();
+        await api.post("/tickets", construirTicketPayload(numeroPedido));
+
         const ordenLocal = {
           _id: guestId,
-          numero_pedido: guestId.slice(-5).toUpperCase(),
+          numero_pedido: numeroPedido,
           fecha: new Date().toISOString(),
-          tipo_pago: metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago,
+          tipo_pago: tipoPagoFinal,
+          estado_pedido: "pendiente",
           cliente: {
             ...cliente,
           },
-          productos,
+          productos: productosCliente,
           total,
           local: localId || null,
           local_nombre: localNombre,
@@ -133,9 +197,16 @@ const Checkout = () => {
     try {
       const response = await api.post("/pagos/crear-sesion", {
         items: state.items.map((item) => ({
-          nombre: item.varianteNombre
-            ? `${item.nombre} (${item.varianteNombre})`
-            : item.nombre,
+          nombre: (() => {
+            const detalle = [];
+            if (item.varianteNombre) detalle.push(item.varianteNombre);
+            if (Array.isArray(item.agregados) && item.agregados.length > 0) {
+              detalle.push(`Agregados: ${item.agregados.map((agg) => agg.nombre).join(", ")}`);
+            }
+            return detalle.length > 0
+              ? `${item.nombre} (${detalle.join(" | ")})`
+              : item.nombre;
+          })(),
           precio: item.precio ?? item.price ?? 0,
           cantidad: item.quantity,
         })),
@@ -162,7 +233,12 @@ const Checkout = () => {
           <h2 className="text-xl font-semibold mb-4">Resumen del carrito</h2>
           {state.items.map((item) => (
             <div
-              key={item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`}
+              key={
+                item.idCarrito ||
+                `${item._id}::${item.varianteId || item.varianteKey || "base"}::${getAgregadosKey(
+                  item.agregados
+                )}`
+              }
               className="flex gap-4 border-b py-3 items-center"
             >
               {item.imagen_url && (
@@ -179,6 +255,11 @@ const Checkout = () => {
                 {item.varianteNombre && (
                   <span className="block text-xs text-gray-500">
                     Variación: {item.varianteNombre}
+                  </span>
+                )}
+                {Array.isArray(item.agregados) && item.agregados.length > 0 && (
+                  <span className="block text-xs text-gray-500">
+                    Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
                   </span>
                 )}
                 <span className="block text-sm text-gray-600">

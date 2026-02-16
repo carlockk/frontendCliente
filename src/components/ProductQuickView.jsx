@@ -5,6 +5,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
   const [showAnimation, setShowAnimation] = useState(false);
   const [cantidad, setCantidad] = useState(1);
   const [varianteSeleccionadaKey, setVarianteSeleccionadaKey] = useState("");
+  const [agregadosSeleccionados, setAgregadosSeleccionados] = useState([]);
   const { dispatch } = useCart();
 
   useEffect(() => {
@@ -12,6 +13,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
       setShowAnimation(false);
       setCantidad(1); // Reiniciar cantidad cada vez que abre
       setVarianteSeleccionadaKey("");
+      setAgregadosSeleccionados([]);
       const timeout = setTimeout(() => setShowAnimation(true), 10);
       return () => clearTimeout(timeout);
     } else {
@@ -27,6 +29,9 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
 
   if (!isOpen || !producto) return null;
   const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
+  const agregadosDisponibles = Array.isArray(producto.agregados)
+    ? producto.agregados.filter((agg) => agg?.nombre && agg?.activo !== false)
+    : [];
   const tieneVariantes = variantes.length > 0;
   const getVarianteKey = (v, idx) => String(v?._id || `idx-${idx}`);
   const varianteSeleccionadaIndice = variantes.findIndex(
@@ -35,21 +40,52 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
   const varianteSeleccionada =
     varianteSeleccionadaIndice >= 0 ? variantes[varianteSeleccionadaIndice] : null;
 
+  const normalizarAgregado = (agg) => ({
+    agregadoId: agg._id || agg.agregadoId || null,
+    nombre: agg.nombre,
+    precio: Number(agg.precio) || 0,
+  });
+
+  const buildAgregadosKey = (agregados = []) =>
+    [...agregados]
+      .map((agg) => String(agg.agregadoId || agg.nombre || ""))
+      .sort()
+      .join("|");
+
+  const toggleAgregado = (agregado) => {
+    const agregadoId = agregado._id || agregado.agregadoId || null;
+    setAgregadosSeleccionados((prev) => {
+      const existe = prev.some((item) => item.agregadoId === agregadoId);
+      if (existe) {
+        return prev.filter((item) => item.agregadoId !== agregadoId);
+      }
+      return [...prev, normalizarAgregado(agregado)];
+    });
+  };
+
   const agregarAlCarrito = () => {
     if (tieneVariantes && !varianteSeleccionada) {
       alert("Debes elegir una variación.");
       return;
     }
 
-    const precioFinal =
+    const precioBase =
       typeof varianteSeleccionada?.precio === "number"
         ? varianteSeleccionada.precio
         : producto.precio;
+    const totalAgregados = agregadosSeleccionados.reduce(
+      (acc, agg) => acc + (Number(agg.precio) || 0),
+      0
+    );
+    const precioFinal = (Number(precioBase) || 0) + totalAgregados;
+    const agregadosKey = buildAgregadosKey(agregadosSeleccionados);
 
     dispatch({
       type: "ADD_ITEM",
       payload: {
         ...producto,
+        precioBase: Number(precioBase) || 0,
+        precioAgregados: totalAgregados,
         precio: precioFinal,
         varianteId: varianteSeleccionada?._id || null,
         varianteKey: varianteSeleccionadaKey || null,
@@ -62,9 +98,10 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
               .filter(Boolean)
               .join(" - ")
           : null,
+        agregados: agregadosSeleccionados,
         idCarrito: `${producto._id}::${
           varianteSeleccionada?._id || varianteSeleccionadaKey || "base"
-        }`,
+        }::${agregadosKey || "sin-agregados"}`,
         cantidad: cantidad,
       },
     });
@@ -103,7 +140,12 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
           <h2 className="text-lg font-bold mb-1">{producto.nombre}</h2>
           <p className="text-sm text-gray-700 mb-3">{producto.descripcion}</p>
           <p className="text-green-600 font-semibold text-base mb-4">
-            ${producto.precio?.toLocaleString("es-CL")}
+            ${(
+              (typeof varianteSeleccionada?.precio === "number"
+                ? varianteSeleccionada.precio
+                : producto.precio || 0) +
+              agregadosSeleccionados.reduce((acc, agg) => acc + (Number(agg.precio) || 0), 0)
+            ).toLocaleString("es-CL")}
           </p>
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-1">Variaciones</h3>
@@ -132,6 +174,38 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
               </ul>
             ) : (
               <p className="text-xs text-gray-400">Producto sin variaciones</p>
+            )}
+          </div>
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">Agregados opcionales</h3>
+            {agregadosDisponibles.length > 0 ? (
+              <ul className="space-y-2">
+                {agregadosDisponibles.map((agg, idx) => {
+                  const agregadoId = agg._id || agg.agregadoId || `idx-${idx}`;
+                  const checked = agregadosSeleccionados.some(
+                    (item) => item.agregadoId === (agg._id || agg.agregadoId || null)
+                  );
+                  return (
+                    <li key={agregadoId} className="text-xs text-gray-600">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleAgregado(agg)}
+                        />
+                        <span>
+                          {agg.nombre}
+                          {Number(agg.precio) > 0
+                            ? ` - +$${Number(agg.precio).toLocaleString("es-CL")}`
+                            : " - Incluido"}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-xs text-gray-400">Este producto no tiene agregados configurados</p>
             )}
           </div>
           {onRemoveFavorite && (

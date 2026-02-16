@@ -7,8 +7,18 @@ const initialState = {
   total: 0,
 };
 
+const getAgregadosKey = (agregados = []) => {
+  if (!Array.isArray(agregados) || agregados.length === 0) return "sin-agregados";
+  return agregados
+    .map((agg) => String(agg?.agregadoId || agg?._id || agg?.nombre || ""))
+    .filter(Boolean)
+    .sort()
+    .join("|") || "sin-agregados";
+};
+
 const getCartItemId = (item) =>
-  item.idCarrito || `${item._id}::${item.varianteId || item.varianteKey || "base"}`;
+  item.idCarrito ||
+  `${item._id}::${item.varianteId || item.varianteKey || "base"}::${getAgregadosKey(item.agregados)}`;
 
 const cartReducer = (state, action) => {
   switch (action.type) {
@@ -18,7 +28,7 @@ const cartReducer = (state, action) => {
         action.payload.idCarrito ||
         `${action.payload._id}::${
           action.payload.varianteId || action.payload.varianteKey || "base"
-        }`;
+        }::${getAgregadosKey(action.payload.agregados)}`;
       const precio = action.payload.precio ?? action.payload.price ?? 0;
       const existing = state.items.find(
         (item) => getCartItemId(item) === idCarrito

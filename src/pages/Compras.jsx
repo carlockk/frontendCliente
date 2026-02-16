@@ -34,6 +34,11 @@ const Compras = () => {
     };
 
     cargarVentas();
+
+    if (user?.token) {
+      const interval = setInterval(cargarVentas, 20000);
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   const ventasPorLocal = useMemo(() => {
@@ -103,11 +108,16 @@ const Compras = () => {
                     <th>Fecha</th>
                     <th>Total</th>
                     <th>Pago</th>
+                    <th>Estado</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((venta) => (
+                  {lista.map((venta) => {
+                    const estadoRaw =
+                      venta.estado_pedido || venta.estado || venta.status || "pendiente";
+                    const estado = String(estadoRaw).toLowerCase();
+                    return (
                     <tr key={venta._id} className="border-b hover:bg-gray-50">
                       <td className="py-2">
                         {venta.numero_pedido || venta._id.slice(-5)}
@@ -115,6 +125,21 @@ const Compras = () => {
                       <td>{new Date(venta.fecha).toLocaleString()}</td>
                       <td>${venta.total?.toLocaleString("es-CL")}</td>
                       <td>{venta.tipo_pago}</td>
+                      <td>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            estado === "aceptado" || estado === "preparando" || estado === "listo"
+                              ? "bg-blue-100 text-blue-700"
+                              : estado === "entregado"
+                              ? "bg-green-100 text-green-700"
+                              : estado === "rechazado" || estado === "cancelado"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {estadoRaw}
+                        </span>
+                      </td>
                       <td>
                         <button
                           onClick={() => navigate(`/compras/detalle/${venta._id}`)}
@@ -124,7 +149,8 @@ const Compras = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

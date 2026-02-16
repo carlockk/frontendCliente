@@ -60,7 +60,10 @@ const ProductList = () => {
   const agregarAlCarrito = (producto) => {
     const tieneVariantes =
       Array.isArray(producto.variantes) && producto.variantes.length > 0;
-    if (tieneVariantes) {
+    const tieneAgregados =
+      Array.isArray(producto.agregados) &&
+      producto.agregados.some((agg) => agg?.nombre && agg?.activo !== false);
+    if (tieneVariantes || tieneAgregados) {
       abrirVistaRapida(producto);
       return;
     }
@@ -166,6 +169,10 @@ const ProductList = () => {
                   const esFavorito = favoritos.includes(producto._id);
                   const tieneVariantes =
                     Array.isArray(producto.variantes) && producto.variantes.length > 0;
+                  const agregadosActivos = Array.isArray(producto.agregados)
+                    ? producto.agregados.filter((agg) => agg?.nombre && agg?.activo !== false)
+                    : [];
+                  const tieneAgregados = agregadosActivos.length > 0;
 
                   return (
                     <div
@@ -180,16 +187,21 @@ const ProductList = () => {
                         title="Ver imagen completa"
                       />
                       <div className="flex-1">
-                        <h2 className="font-semibold text-sm">{producto.nombre}</h2>
-                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
-                        <p
-                          className={`text-[11px] mt-1 ${
-                            tieneVariantes ? "text-blue-600" : "text-gray-400"
-                          }`}
+                        <h2
+                          className="font-semibold text-sm cursor-pointer hover:text-blue-600"
+                          onClick={() => abrirVistaRapida(producto)}
+                          title="Ver vista rápida"
                         >
+                          {producto.nombre}
+                        </h2>
+                        <p className="text-xs text-gray-500">{descripcionCorta}</p>
+                        <p className="text-[11px] mt-1 text-gray-500">
                           {tieneVariantes
                             ? `${producto.variantes.length} variación(es) disponible(s)`
                             : "Producto sin variaciones"}
+                          {tieneAgregados
+                            ? ` | ${agregadosActivos.length} agregado(s) opcional(es)`
+                            : ""}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <p className="text-sm font-semibold text-green-600">

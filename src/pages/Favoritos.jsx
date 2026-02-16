@@ -57,7 +57,10 @@ const Favoritos = () => {
   const agregarAlCarrito = (producto) => {
     const tieneVariantes =
       Array.isArray(producto.variantes) && producto.variantes.length > 0;
-    if (tieneVariantes) {
+    const tieneAgregados =
+      Array.isArray(producto.agregados) &&
+      producto.agregados.some((agg) => agg?.nombre && agg?.activo !== false);
+    if (tieneVariantes || tieneAgregados) {
       abrirVistaRapida(producto);
       return;
     }
@@ -115,7 +118,13 @@ const Favoritos = () => {
                 title="Ver imagen completa"
               />
               <div className="flex-1">
-                <h2 className="font-semibold text-sm">{producto.nombre}</h2>
+                <h2
+                  className="font-semibold text-sm cursor-pointer hover:text-blue-600"
+                  onClick={() => abrirVistaRapida(producto)}
+                  title="Ver vista rápida"
+                >
+                  {producto.nombre}
+                </h2>
                 <p className="text-xs text-gray-500">{descripcionCorta}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <p className="text-sm font-semibold text-green-600">
