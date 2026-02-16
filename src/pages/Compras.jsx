@@ -14,6 +14,7 @@ const Compras = () => {
   const [filtroLocal, setFiltroLocal] = useState(
     () => localStorage.getItem("compras_filtro_local") || "todos"
   );
+  const [eliminandoId, setEliminandoId] = useState("");
 
   useEffect(() => {
     const cargarVentas = async () => {
@@ -98,6 +99,35 @@ const Compras = () => {
     localStorage.setItem("compras_filtro_local", filtroLocal);
   }, [filtroLocal]);
 
+  const eliminarCompra = async (venta) => {
+    if (!venta?._id) return;
+    const ok = window.confirm(
+      `¿Eliminar pedido #${venta.numero_pedido || String(venta._id).slice(-5)}?`
+    );
+    if (!ok) return;
+
+    setEliminandoId(venta._id);
+    try {
+      if (user?.token) {
+        await api.delete(`/ventasCliente/${venta._id}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        setVentas((prev) => prev.filter((item) => item._id !== venta._id));
+      } else {
+        const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
+        const updated = prev.filter((item) => item._id !== venta._id);
+        localStorage.setItem("ventas_local", JSON.stringify(updated));
+        setVentas(updated);
+      }
+      setCambiosEstado((prev) => prev.filter((cambio) => cambio.id !== venta._id));
+    } catch (err) {
+      console.error("Error al eliminar pedido:", err);
+      alert("No se pudo eliminar el pedido.");
+    } finally {
+      setEliminandoId("");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded shadow">
       <h2 className="text-2xl font-bold mb-4">🧾 Historial de Compras</h2>
@@ -168,6 +198,7 @@ const Compras = () => {
                     <th>Pago</th>
                     <th>Estado</th>
                     <th></th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -204,6 +235,15 @@ const Compras = () => {
                           className="text-blue-600 hover:underline"
                         >
                           Ver detalle
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => eliminarCompra(venta)}
+                          disabled={eliminandoId === venta._id}
+                          className="text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          Eliminar
                         </button>
                       </td>
                     </tr>
