@@ -102,85 +102,47 @@ const Checkout = () => {
         metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago;
       const detalleCliente = `WEB - ${cliente.nombre} - ${cliente.telefono}`;
 
-      const productosPos = state.items.map((item) => ({
-        productoId: item._id,
-        nombre: item.nombre,
-        precio_unitario: item.precio ?? item.price ?? 0,
-        cantidad: item.quantity,
-        observacion: detalleCliente,
-        varianteId: item.varianteId || null,
-        varianteNombre: item.varianteNombre || "",
-        agregados: Array.isArray(item.agregados) ? item.agregados : [],
-      }));
-
-      const construirNumeroLocal = () =>
-        `W${Date.now().toString().slice(-6)}`;
-
-      const construirTicketPayload = (numeroPedido) => ({
-        nombre: `WEB #${numeroPedido} - ${cliente.nombre} (${cliente.telefono})`,
-        total,
-        productos: productosPos,
-      });
-
-      // Venta operativa del POS: deja trazabilidad en dashboard/historial del local.
-      const ventaPos = await api.post("/ventas", {
-        productos: productosPos,
+      const res = await api.post("/ventasCliente", {
+        productos: productosCliente.map((p) => ({
+          ...p,
+          observacion: `${detalleCliente} | ${tipoPedido === "delivery" ? `Delivery: ${cliente.direccion || "sin dirección"}` : "Sin delivery"}`,
+        })),
         total,
         tipo_pago: tipoPagoFinal,
-        tipo_pedido: `web_${tipoPedido}`,
+        cliente_email: cliente.correo || user?.email || "sincorreo",
+        cliente_nombre: cliente.nombre,
+        cliente_telefono: cliente.telefono,
+        local: localId || null,
       });
 
-      if (user?.token) {
-        const res = await api.post("/ventasCliente", {
-          productos: productosCliente,
-          total,
-          tipo_pago: tipoPagoFinal,
-          cliente_email: cliente.correo || user?.email || "sincorreo",
-          cliente_nombre: cliente.nombre,
-          cliente_telefono: cliente.telefono,
-          local: localId || null,
-        });
-
-        try {
-          await api.post(
-            "/tickets",
-            construirTicketPayload(
-              ventaPos.data?.numero_pedido || res.data.numero_pedido || res.data._id?.slice(-5)
-            )
-          );
-        } catch (ticketErr) {
-          console.error("Error al notificar ticket a cocina:", ticketErr);
-          alert("Pedido registrado, pero no se pudo notificar automáticamente a cocina/recepción.");
-        }
-
+      if (user?.token && res?.data?._id) {
         dispatch({ type: "CLEAR_CART" });
         navigate(`/compras/detalle/${res.data._id}`);
-      } else {
-        const guestId = `local_${Date.now().toString(36)}`;
-        const numeroPedido = construirNumeroLocal();
-        await api.post("/tickets", construirTicketPayload(numeroPedido));
-
-        const ordenLocal = {
-          _id: guestId,
-          numero_pedido: numeroPedido,
-          fecha: new Date().toISOString(),
-          tipo_pago: tipoPagoFinal,
-          estado_pedido: "pendiente",
-          cliente: {
-            ...cliente,
-          },
-          productos: productosCliente,
-          total,
-          local: localId || null,
-          local_nombre: localNombre,
-        };
-
-        const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
-        localStorage.setItem("ventas_local", JSON.stringify([ordenLocal, ...prev]));
-
-        dispatch({ type: "CLEAR_CART" });
-        navigate(`/compras/detalle/${guestId}`);
+        return;
       }
+
+      const guestId = `local_${Date.now().toString(36)}`;
+      const ordenLocal = {
+        _id: guestId,
+        backend_id: res?.data?._id || null,
+        numero_pedido: res?.data?.numero_pedido || `W${Date.now().toString().slice(-6)}`,
+        fecha: res?.data?.fecha || new Date().toISOString(),
+        tipo_pago: tipoPagoFinal,
+        estado_pedido: res?.data?.estado_pedido || "pendiente",
+        cliente: {
+          ...cliente,
+        },
+        productos: productosCliente,
+        total,
+        local: localId || null,
+        local_nombre: localNombre,
+      };
+
+      const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
+      localStorage.setItem("ventas_local", JSON.stringify([ordenLocal, ...prev]));
+
+      dispatch({ type: "CLEAR_CART" });
+      navigate(`/compras/detalle/${guestId}`);
     } catch (err) {
       console.error("Error al guardar venta:", err);
       alert("No se pudo procesar el pedido.");
