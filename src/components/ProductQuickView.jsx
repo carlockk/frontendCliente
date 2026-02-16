@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../contexts/cart/CartContext";
+import { getProductAddons } from "../utils/productAddons";
 
 export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFavorite }) {
   const [showAnimation, setShowAnimation] = useState(false);
@@ -29,9 +30,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
 
   if (!isOpen || !producto) return null;
   const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
-  const agregadosDisponibles = Array.isArray(producto.agregados)
-    ? producto.agregados.filter((agg) => agg?.nombre && agg?.activo !== false)
-    : [];
+  const agregadosDisponibles = getProductAddons(producto);
   const tieneVariantes = variantes.length > 0;
   const getVarianteKey = (v, idx) => String(v?._id || `idx-${idx}`);
   const varianteSeleccionadaIndice = variantes.findIndex(
@@ -53,7 +52,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
       .join("|");
 
   const toggleAgregado = (agregado) => {
-    const agregadoId = agregado._id || agregado.agregadoId || null;
+    const agregadoId = agregado._id || agregado.agregadoId || agregado.nombre || null;
     setAgregadosSeleccionados((prev) => {
       const existe = prev.some((item) => item.agregadoId === agregadoId);
       if (existe) {
@@ -181,9 +180,11 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
             {agregadosDisponibles.length > 0 ? (
               <ul className="space-y-2">
                 {agregadosDisponibles.map((agg, idx) => {
-                  const agregadoId = agg._id || agg.agregadoId || `idx-${idx}`;
+                  const agregadoId = agg._id || agg.agregadoId || `${agg.nombre}-${idx}`;
                   const checked = agregadosSeleccionados.some(
-                    (item) => item.agregadoId === (agg._id || agg.agregadoId || null)
+                    (item) =>
+                      item.agregadoId ===
+                      (agg._id || agg.agregadoId || agg.nombre || null)
                   );
                   return (
                     <li key={agregadoId} className="text-xs text-gray-600">

@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLocal } from "../contexts/LocalContext";
 import SidebarFiltros from "../components/SidebarFiltros";
 import ProductQuickView from "../components/ProductQuickView";
+import { getProductAddons } from "../utils/productAddons";
 
 const ProductList = () => {
   const [productos, setProductos] = useState([]);
@@ -60,9 +61,7 @@ const ProductList = () => {
   const agregarAlCarrito = (producto) => {
     const tieneVariantes =
       Array.isArray(producto.variantes) && producto.variantes.length > 0;
-    const tieneAgregados =
-      Array.isArray(producto.agregados) &&
-      producto.agregados.some((agg) => agg?.nombre && agg?.activo !== false);
+    const tieneAgregados = getProductAddons(producto).length > 0;
     if (tieneVariantes || tieneAgregados) {
       abrirVistaRapida(producto);
       return;
@@ -169,9 +168,7 @@ const ProductList = () => {
                   const esFavorito = favoritos.includes(producto._id);
                   const tieneVariantes =
                     Array.isArray(producto.variantes) && producto.variantes.length > 0;
-                  const agregadosActivos = Array.isArray(producto.agregados)
-                    ? producto.agregados.filter((agg) => agg?.nombre && agg?.activo !== false)
-                    : [];
+                  const agregadosActivos = getProductAddons(producto);
                   const tieneAgregados = agregadosActivos.length > 0;
 
                   return (

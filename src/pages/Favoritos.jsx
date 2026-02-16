@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/cart/CartContext";
 import { useLocal } from "../contexts/LocalContext";
 import ProductQuickView from "../components/ProductQuickView";
+import { getProductAddons } from "../utils/productAddons";
 
 const Favoritos = () => {
   const { isLogged, user } = useAuth();
@@ -57,9 +58,7 @@ const Favoritos = () => {
   const agregarAlCarrito = (producto) => {
     const tieneVariantes =
       Array.isArray(producto.variantes) && producto.variantes.length > 0;
-    const tieneAgregados =
-      Array.isArray(producto.agregados) &&
-      producto.agregados.some((agg) => agg?.nombre && agg?.activo !== false);
+    const tieneAgregados = getProductAddons(producto).length > 0;
     if (tieneVariantes || tieneAgregados) {
       abrirVistaRapida(producto);
       return;

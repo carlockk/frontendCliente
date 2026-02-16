@@ -158,20 +158,25 @@ const Checkout = () => {
 
     try {
       const response = await api.post("/pagos/crear-sesion", {
-        items: state.items.map((item) => ({
-          nombre: (() => {
-            const detalle = [];
-            if (item.varianteNombre) detalle.push(item.varianteNombre);
-            if (Array.isArray(item.agregados) && item.agregados.length > 0) {
-              detalle.push(`Agregados: ${item.agregados.map((agg) => agg.nombre).join(", ")}`);
-            }
-            return detalle.length > 0
-              ? `${item.nombre} (${detalle.join(" | ")})`
-              : item.nombre;
-          })(),
-          precio: item.precio ?? item.price ?? 0,
-          cantidad: item.quantity,
-        })),
+        order: {
+          local: localId || null,
+          tipo_pedido: tipoPedido,
+          cliente: {
+            nombre: cliente.nombre,
+            telefono: cliente.telefono,
+            direccion: cliente.direccion || "",
+            correo: cliente.correo || user?.email || "",
+          },
+          items: state.items.map((item) => ({
+            productoId: item._id,
+            nombre: item.nombre,
+            precio: item.precio ?? item.price ?? 0,
+            cantidad: item.quantity,
+            varianteId: item.varianteId || null,
+            varianteNombre: item.varianteNombre || "",
+            agregados: Array.isArray(item.agregados) ? item.agregados : [],
+          })),
+        },
       });
 
       if (response.data.url) {

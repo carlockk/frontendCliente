@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -9,6 +9,8 @@ const Compras = () => {
   const [ventas, setVentas] = useState([]);
   const navigate = useNavigate();
   const { locales } = useLocal();
+  const prevEstadosRef = useRef({});
+  const [cambiosEstado, setCambiosEstado] = useState([]);
   const [filtroLocal, setFiltroLocal] = useState(
     () => localStorage.getItem("compras_filtro_local") || "todos"
   );
@@ -27,7 +29,31 @@ const Compras = () => {
             Authorization: `Bearer ${user.token}`,
           },
         });
-        setVentas(res.data);
+        const data = Array.isArray(res.data) ? res.data : [];
+        const cambios = [];
+        const nuevoMapa = {};
+
+        data.forEach((venta) => {
+          const id = venta._id;
+          const estadoRaw = venta.estado_pedido || venta.estado || venta.status || "pendiente";
+          const estado = String(estadoRaw).toLowerCase();
+          nuevoMapa[id] = estado;
+
+          if (prevEstadosRef.current[id] && prevEstadosRef.current[id] !== estado) {
+            cambios.push({
+              id,
+              numero: venta.numero_pedido || String(id).slice(-5),
+              estado,
+            });
+          }
+        });
+
+        prevEstadosRef.current = nuevoMapa;
+        if (cambios.length > 0) {
+          setCambiosEstado((prev) => [...cambios, ...prev].slice(0, 5));
+        }
+
+        setVentas(data);
       } catch (err) {
         console.error("Error al cargar historial:", err);
       }
@@ -75,6 +101,26 @@ const Compras = () => {
   return (
     <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded shadow">
       <h2 className="text-2xl font-bold mb-4">🧾 Historial de Compras</h2>
+      {cambiosEstado.length > 0 && (
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3 text-left">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-semibold text-blue-800">Actualización de pedidos</p>
+            <button
+              onClick={() => setCambiosEstado([])}
+              className="text-blue-700 text-sm hover:underline"
+            >
+              Cerrar
+            </button>
+          </div>
+          <div className="space-y-1">
+            {cambiosEstado.map((cambio, idx) => (
+              <p key={`${cambio.id}-${idx}`} className="text-sm text-blue-900">
+                Pedido #{cambio.numero}: nuevo estado <strong>{cambio.estado}</strong>
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
 
       {ventas.length === 0 ? (
         <p>No tienes compras registradas aún.</p>
