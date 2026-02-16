@@ -17,10 +17,72 @@ const Compras = () => {
   const [eliminandoId, setEliminandoId] = useState("");
 
   useEffect(() => {
+    const registrarCambiosEstado = (listaVentas = []) => {
+      const cambios = [];
+      const nuevoMapa = {};
+
+      listaVentas.forEach((venta) => {
+        const id = venta._id;
+        const estadoRaw = venta.estado_pedido || venta.estado || venta.status || "pendiente";
+        const estado = String(estadoRaw).toLowerCase();
+        nuevoMapa[id] = estado;
+
+        if (prevEstadosRef.current[id] && prevEstadosRef.current[id] !== estado) {
+          cambios.push({
+            id,
+            numero: venta.numero_pedido || String(id).slice(-5),
+            estado,
+          });
+        }
+      });
+
+      prevEstadosRef.current = nuevoMapa;
+      if (cambios.length > 0) {
+        setCambiosEstado((prev) => [...cambios, ...prev].slice(0, 8));
+      }
+    };
+
+    const sincronizarInvitado = async (ventasLocales = []) => {
+      const conBackend = ventasLocales.filter((v) => v.backend_id);
+      if (conBackend.length === 0) return ventasLocales;
+
+      const resultados = await Promise.allSettled(
+        conBackend.map((venta) => api.get(`/ventasCliente/public/${venta.backend_id}`))
+      );
+
+      const porBackendId = {};
+      resultados.forEach((res, idx) => {
+        if (res.status === "fulfilled" && res.value?.data) {
+          porBackendId[conBackend[idx].backend_id] = res.value.data;
+        }
+      });
+
+      const actualizadas = ventasLocales.map((venta) => {
+        const remoto = venta.backend_id ? porBackendId[venta.backend_id] : null;
+        if (!remoto) return venta;
+        return {
+          ...venta,
+          numero_pedido: remoto.numero_pedido || venta.numero_pedido,
+          fecha: remoto.fecha || venta.fecha,
+          tipo_pago: remoto.tipo_pago || venta.tipo_pago,
+          total: remoto.total ?? venta.total,
+          estado_pedido:
+            remoto.estado_pedido || remoto.estado || remoto.status || venta.estado_pedido,
+          local: remoto.local || venta.local || null,
+          productos: Array.isArray(remoto.productos) ? remoto.productos : venta.productos,
+        };
+      });
+
+      localStorage.setItem("ventas_local", JSON.stringify(actualizadas));
+      return actualizadas;
+    };
+
     const cargarVentas = async () => {
       if (!user || !user.token) {
-        const locales = JSON.parse(localStorage.getItem("ventas_local") || "[]");
-        setVentas(locales);
+        const ventasLocales = JSON.parse(localStorage.getItem("ventas_local") || "[]");
+        const sincronizadas = await sincronizarInvitado(ventasLocales);
+        registrarCambiosEstado(sincronizadas);
+        setVentas(sincronizadas);
         return;
       }
 
@@ -31,29 +93,7 @@ const Compras = () => {
           },
         });
         const data = Array.isArray(res.data) ? res.data : [];
-        const cambios = [];
-        const nuevoMapa = {};
-
-        data.forEach((venta) => {
-          const id = venta._id;
-          const estadoRaw = venta.estado_pedido || venta.estado || venta.status || "pendiente";
-          const estado = String(estadoRaw).toLowerCase();
-          nuevoMapa[id] = estado;
-
-          if (prevEstadosRef.current[id] && prevEstadosRef.current[id] !== estado) {
-            cambios.push({
-              id,
-              numero: venta.numero_pedido || String(id).slice(-5),
-              estado,
-            });
-          }
-        });
-
-        prevEstadosRef.current = nuevoMapa;
-        if (cambios.length > 0) {
-          setCambiosEstado((prev) => [...cambios, ...prev].slice(0, 5));
-        }
-
+        registrarCambiosEstado(data);
         setVentas(data);
       } catch (err) {
         console.error("Error al cargar historial:", err);
@@ -62,10 +102,8 @@ const Compras = () => {
 
     cargarVentas();
 
-    if (user?.token) {
-      const interval = setInterval(cargarVentas, 20000);
-      return () => clearInterval(interval);
-    }
+    const interval = setInterval(cargarVentas, 20000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const ventasPorLocal = useMemo(() => {
@@ -157,7 +195,7 @@ const Compras = () => {
                 }}
                 className="px-3 py-2 rounded bg-blue-600 text-sm text-white hover:bg-blue-700"
               >
-                Ir al detalle
+                Aceptar
               </button>
             </div>
           </div>
