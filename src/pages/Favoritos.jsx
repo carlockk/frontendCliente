@@ -97,7 +97,7 @@ const Favoritos = () => {
         <p className="text-gray-600">Aún no tienes productos favoritos.</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {favoritosFiltrados.map((producto) => {
           const descripcionCorta =
             producto.descripcion?.length > 70
@@ -107,7 +107,7 @@ const Favoritos = () => {
           return (
             <div
               key={producto._id}
-              className="border-0 border-b border-dashed border-gray-300 pb-4 mb-4 flex gap-3 items-start"
+              className="border-0 border-b border-dashed border-gray-300 pb-2 mb-2 flex gap-3 items-start"
             >
               <img
                 src={producto.imagen_url}

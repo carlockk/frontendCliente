@@ -18,6 +18,8 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
   const { user } = useAuth();
   const { localId } = useLocal();
+  const usuarioKey = user?._id || "guest";
+  const ordenStorageKey = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
 
   const mostrarToast = (mensaje) => {
     setToast(mensaje);
@@ -42,7 +44,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
       }
       try {
         const res = await api.get("/categorias");
-        const ordenGuardado = localStorage.getItem(`orden_categorias_${user?._id}`);
+        const ordenGuardado = localStorage.getItem(ordenStorageKey);
         if (ordenGuardado) {
           const ordenIds = JSON.parse(ordenGuardado);
           const reordenadas = ordenIds
@@ -62,7 +64,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
     const vistos = localStorage.getItem("productos_vistos");
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, [user, localId]);
+  }, [user, localId, ordenStorageKey]);
 
   useEffect(() => {
     aplicarFiltros();
@@ -88,16 +90,14 @@ const SidebarFiltros = ({ onFiltrar }) => {
     nuevasCategorias.splice(result.destination.index, 0, moved);
     setCategorias(nuevasCategorias);
 
-    if (user?._id) {
-      const ordenIds = nuevasCategorias.map((c) => c._id);
-      localStorage.setItem(`orden_categorias_${user._id}`, JSON.stringify(ordenIds));
-      mostrarToast("✅ Orden guardado");
-    }
+    const ordenIds = nuevasCategorias.map((c) => c._id);
+    localStorage.setItem(ordenStorageKey, JSON.stringify(ordenIds));
+    mostrarToast("✅ Orden guardado");
   };
 
   const restablecerOrden = async () => {
     try {
-      localStorage.removeItem(`orden_categorias_${user._id}`);
+      localStorage.removeItem(ordenStorageKey);
       if (!localId) {
         setCategorias([]);
         return;
@@ -221,14 +221,12 @@ const SidebarFiltros = ({ onFiltrar }) => {
             </Droppable>
           </DragDropContext>
 
-          {user && (
-            <button
-              onClick={restablecerOrden}
-              className="mt-2 text-blue-500 text-xs hover:underline"
-            >
-              🔄 Restablecer orden original
-            </button>
-          )}
+          <button
+            onClick={restablecerOrden}
+            className="mt-2 text-blue-500 text-xs hover:underline"
+          >
+            🔄 Restablecer orden original
+          </button>
         </div>
 
         <div>

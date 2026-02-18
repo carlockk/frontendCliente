@@ -118,8 +118,9 @@ const ProductList = () => {
   }, {});
 
   const ordenCategorias = (() => {
-    if (!isLogged) return [];
-    const raw = localStorage.getItem(`orden_categorias_${user._id}`);
+    const usuarioKey = user?._id || "guest";
+    const key = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   })();
 
@@ -142,9 +143,10 @@ const ProductList = () => {
     <>
       <div className="flex w-full items-start" ref={topRef}>
         {/* Contenedor de productos */}
-        <div className="flex-1 max-w-screen-xl mx-auto px-4 py-6">
+        <div className="flex-1 px-3 md:px-4 py-6">
           <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
-            🧾 Menú disponible
+            <i className="fas fa-utensils text-2xl" aria-hidden="true"></i>
+            Menú disponible
           </h1>
           {!localId && (
             <div className="mb-6 rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
@@ -159,7 +161,7 @@ const ProductList = () => {
                   ••• {categoria} •••
                 </h2>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {productosPorCategoria[categoria].map((producto) => {
                   const descripcionCorta =
                     producto.descripcion?.length > 70
@@ -174,7 +176,7 @@ const ProductList = () => {
                   return (
                     <div
                       key={producto._id}
-                      className="border-0 border-b border-dashed border-gray-300 pb-4 mb-4 flex gap-3 items-start"
+                      className="border-0 border-b border-dashed border-gray-300 pb-2 mb-2 flex gap-3 items-start"
                     >
                       <img
                         src={producto.imagen_url}
@@ -192,7 +194,7 @@ const ProductList = () => {
                           {producto.nombre}
                         </h2>
                         <p className="text-xs text-gray-500">{descripcionCorta}</p>
-                        <p className="text-[11px] mt-1 text-gray-500">
+                        <p className="text-[11px] mt-1 text-black font-normal">
                           {tieneVariantes
                             ? `${producto.variantes.length} variación(es) disponible(s)`
                             : "Producto sin variaciones"}
@@ -244,7 +246,7 @@ const ProductList = () => {
       </div>
 
       {/* Sidebar móvil */}
-      <div className="md:hidden px-4">
+      <div className="md:hidden px-3">
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 
