@@ -143,7 +143,7 @@ const ProductList = () => {
     <>
       <div className="flex w-full items-start" ref={topRef}>
         {/* Contenedor de productos */}
-        <div className="flex-1 px-3 md:px-4 py-6">
+        <div className="flex-1 px-4 md:px-5 py-6">
           <h1 className="text-3xl font-bold text-gray-700 mb-6 flex items-center gap-2">
             <i className="fas fa-utensils text-2xl" aria-hidden="true"></i>
             Menú disponible
@@ -246,7 +246,7 @@ const ProductList = () => {
       </div>
 
       {/* Sidebar móvil */}
-      <div className="md:hidden px-3">
+      <div className="md:hidden px-4">
         <SidebarFiltros onFiltrar={aplicarFiltros} />
       </div>
 

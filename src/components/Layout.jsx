@@ -19,7 +19,7 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col bg-white text-gray-900 relative">
       <Navbar onCartClick={toggleCart} />
-      <main className="flex-grow w-full max-w-[1700px] mx-auto px-4 md:px-5 py-6">{children}</main>
+      <main className="flex-grow w-full max-w-[1700px] mx-auto px-5 md:px-6 py-6">{children}</main>
       <Footer />
       {showScrollTop && (
         <button
