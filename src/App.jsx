@@ -31,6 +31,7 @@ const App = () => {
                 <Route path="/register" element={<Register />} />
                 <Route path="/favoritos" element={<Favoritos />} />
                 <Route path="/success" element={<Success />} />
+                <Route path="/checkout/result" element={<Success />} />
                 <Route path="/cancel" element={<Cancel />} />
                 <Route
                   path="/perfil"
@@ -53,3 +54,5 @@ const App = () => {
 };
 
 export default App;
+
+

@@ -37,6 +37,26 @@ const Checkout = () => {
           .join("|")
       : "sin-agregados";
 
+  const redirigirAWebpay = ({ url, token }) => {
+    if (!url || !token) {
+      throw new Error("Respuesta de Webpay incompleta");
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = url;
+    form.style.display = "none";
+
+    const tokenField = document.createElement("input");
+    tokenField.type = "hidden";
+    tokenField.name = "token_ws";
+    tokenField.value = token;
+
+    form.appendChild(tokenField);
+    document.body.appendChild(form);
+    form.submit();
+  };
+
   const validarFormulario = (esPagoOnline = false) => {
     if (!state.items || state.items.length === 0) {
       alert("El carrito está vacío.");
@@ -151,7 +171,7 @@ const Checkout = () => {
     }
   };
 
-  const handlePagarConStripe = async () => {
+  const handlePagarConWebpay = async () => {
     if (!validarFormulario(true)) return;
 
     setLoading(true);
@@ -179,9 +199,10 @@ const Checkout = () => {
         },
       });
 
-      if (response.data.url) {
-        window.location.href = response.data.url;
-      }
+      redirigirAWebpay({
+        url: response?.data?.url,
+        token: response?.data?.token,
+      });
     } catch (error) {
       console.error("Error al crear sesión de pago:", error);
       alert("No se pudo iniciar el pago.");
@@ -195,7 +216,6 @@ const Checkout = () => {
       <h1 className="text-2xl font-bold mb-6">Finalizar pedido</h1>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* COLUMNA IZQUIERDA: Productos */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Resumen del carrito</h2>
           {state.items.map((item) => (
@@ -237,7 +257,6 @@ const Checkout = () => {
           ))}
         </div>
 
-        {/* COLUMNA DERECHA: Formulario */}
         <div>
           <div className="space-y-4">
             <div>
@@ -269,7 +288,7 @@ const Checkout = () => {
                 className="w-full border rounded px-3 py-2"
               >
                 <option value="">-- Selecciona --</option>
-                <option value="online">Tarjeta (Stripe)</option>
+                <option value="online">Tarjeta (Webpay)</option>
                 <option value="efectivo">Efectivo</option>
               </select>
             </div>
@@ -293,11 +312,11 @@ const Checkout = () => {
 
             {metodoPago === "online" ? (
               <button
-                onClick={handlePagarConStripe}
+                onClick={handlePagarConWebpay}
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading ? "Redirigiendo a Stripe..." : "Pagar con Stripe 💳"}
+                {loading ? "Redirigiendo a Webpay..." : "Pagar con Webpay 💳"}
               </button>
             ) : (
               <button
