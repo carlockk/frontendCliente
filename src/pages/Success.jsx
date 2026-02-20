@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "../contexts/cart/CartContext";
 import api from "../api";
 import { useAuth } from "../contexts/AuthContext";
@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 const Success = () => {
   const { dispatch } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [estado, setEstado] = useState("Confirmando pago...");
   const [detalleId, setDetalleId] = useState("");
@@ -54,7 +55,7 @@ const Success = () => {
         }
 
         setDetalleId(venta._id);
-        setEstado(`Pago exitoso. Pedido #${venta.numero_pedido} registrado.`);
+        setEstado(`Pago exitoso. Pedido #${venta.numero_pedido} registrado. Serás redirigido en 4 segundos.`);
       } catch (err) {
         setEstado(err?.response?.data?.error || "Hubo un problema al confirmar el pago. Intenta recargar.");
       }
@@ -62,6 +63,14 @@ const Success = () => {
 
     confirmar();
   }, [dispatch, searchParams, user?.token]);
+
+  useEffect(() => {
+    if (!detalleId) return undefined;
+    const timer = setTimeout(() => {
+      navigate(`/compras/detalle/${detalleId}`);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [detalleId, navigate]);
 
   return (
     <div className="p-6 max-w-xl mx-auto text-center">
