@@ -3,7 +3,6 @@ import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useLocal } from "../contexts/LocalContext";
-import api from "../api";
 
 const Navbar = ({ onCartClick }) => {
   const { state } = useCart();
@@ -39,36 +38,11 @@ const Navbar = ({ onCartClick }) => {
     setTimeout(() => setMenuVisible(false), 200);
   };
 
-  useEffect(() => {
-    const setFavicon = (url) => {
-      const link = document.querySelector("link[rel='icon']");
-      if (link) link.href = url;
-    };
-
-    const fetchLogo = async () => {
-      if (!localId) {
-        setLogoUrl(defaultLogo);
-        setFavicon(defaultLogo);
-        return;
-      }
-      try {
-        const res = await api.get("/recibo-config");
-        const remoteLogo = res?.data?.logo_url;
-        if (remoteLogo) {
-          setLogoUrl(remoteLogo);
-          setFavicon(remoteLogo);
-        } else {
-          setLogoUrl(defaultLogo);
-          setFavicon(defaultLogo);
-        }
-      } catch {
-        setLogoUrl(defaultLogo);
-        setFavicon(defaultLogo);
-      }
-    };
-
-    fetchLogo();
-  }, [localId]);
+    useEffect(() => {
+    const link = document.querySelector("link[rel='icon']");
+    if (link) link.href = defaultLogo;
+    setLogoUrl(defaultLogo);
+  }, [defaultLogo, localId]);
 
   return (
     <nav className="bg-gray-900 shadow sticky top-0 z-50">
@@ -303,3 +277,4 @@ const Navbar = ({ onCartClick }) => {
 };
 
 export default Navbar;
+
