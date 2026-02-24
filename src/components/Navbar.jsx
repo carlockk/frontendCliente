@@ -3,6 +3,7 @@ import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useLocal } from "../contexts/LocalContext";
+import api from "../api";
 
 const Navbar = ({ onCartClick }) => {
   const { state } = useCart();
@@ -38,10 +39,29 @@ const Navbar = ({ onCartClick }) => {
     setTimeout(() => setMenuVisible(false), 200);
   };
 
-    useEffect(() => {
-    const link = document.querySelector("link[rel='icon']");
-    if (link) link.href = defaultLogo;
-    setLogoUrl(defaultLogo);
+  useEffect(() => {
+    const cargarLogo = async () => {
+      if (!localId) {
+        setLogoUrl(defaultLogo);
+        const link = document.querySelector("link[rel='icon']");
+        if (link) link.href = defaultLogo;
+        return;
+      }
+
+      try {
+        const res = await api.get("/social-config/public");
+        const logo = String(res?.data?.logo_url || "").trim() || defaultLogo;
+        setLogoUrl(logo);
+        const link = document.querySelector("link[rel='icon']");
+        if (link) link.href = logo;
+      } catch {
+        setLogoUrl(defaultLogo);
+        const link = document.querySelector("link[rel='icon']");
+        if (link) link.href = defaultLogo;
+      }
+    };
+
+    cargarLogo();
   }, [defaultLogo, localId]);
 
   return (
