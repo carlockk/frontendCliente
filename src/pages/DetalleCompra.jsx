@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../api";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
 
 const DetalleCompra = () => {
@@ -9,6 +9,7 @@ const DetalleCompra = () => {
   const [loading, setLoading] = useState(true);
   const ticketRef = useRef();
   const { locales } = useLocal();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const obtenerDetalle = async () => {
@@ -70,6 +71,14 @@ const DetalleCompra = () => {
 
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-white p-6 rounded shadow">
+      <button
+        onClick={() => navigate("/compras")}
+        className="mb-4 inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Volver</span>
+      </button>
+
       <div ref={ticketRef}>
         <h2 className="text-2xl font-bold mb-4">
           🧾 Detalle de Compra #{venta.numero_pedido || venta._id.slice(-5)}
@@ -132,7 +141,13 @@ const DetalleCompra = () => {
         </p>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex items-center justify-between">
+        <button
+          onClick={() => navigate("/compras")}
+          className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50"
+        >
+          Volver a mis compras
+        </button>
         <button
           onClick={imprimir}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"

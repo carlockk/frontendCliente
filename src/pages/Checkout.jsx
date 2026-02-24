@@ -1,6 +1,6 @@
 import { useCart } from "../contexts/cart/CartContext";
 import api from "../api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
@@ -15,6 +15,7 @@ const Checkout = () => {
   const [metodoPago, setMetodoPago] = useState("");
   const [tipoPagoEfectivo, setTipoPagoEfectivo] = useState("");
   const [tipoPedido, setTipoPedido] = useState("tienda");
+  const [notaEfectivo, setNotaEfectivo] = useState("");
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -27,6 +28,23 @@ const Checkout = () => {
   const handleInput = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
   };
+
+  useEffect(() => {
+    if (metodoPago !== "efectivo") {
+      setTipoPagoEfectivo("");
+      setNotaEfectivo("");
+      return;
+    }
+
+    if (tipoPedido === "delivery") {
+      setTipoPagoEfectivo("domicilio");
+      return;
+    }
+
+    if (tipoPagoEfectivo === "domicilio") {
+      setTipoPagoEfectivo("");
+    }
+  }, [metodoPago, tipoPedido, tipoPagoEfectivo]);
 
   const getAgregadosKey = (agregados = []) =>
     Array.isArray(agregados) && agregados.length > 0
@@ -121,17 +139,24 @@ const Checkout = () => {
       const tipoPagoFinal =
         metodoPago === "efectivo" ? tipoPagoEfectivo : metodoPago;
       const detalleCliente = `WEB - ${cliente.nombre} - ${cliente.telefono}`;
+      const detalleEfectivo =
+        metodoPago === "efectivo" && notaEfectivo.trim()
+          ? ` | Nota efectivo: ${notaEfectivo.trim()}`
+          : "";
 
       const res = await api.post("/ventasCliente", {
         productos: productosCliente.map((p) => ({
           ...p,
-          observacion: `${detalleCliente} | ${tipoPedido === "delivery" ? `Delivery: ${cliente.direccion || "sin dirección"}` : "Sin delivery"}`,
+          observacion: `${detalleCliente} | ${tipoPedido === "delivery" ? `Delivery: ${cliente.direccion || "sin dirección"}` : "Sin delivery"}${detalleEfectivo}`,
         })),
         total,
         tipo_pago: tipoPagoFinal,
+        tipo_pedido: tipoPedido,
         cliente_email: cliente.correo || user?.email || "sincorreo",
         cliente_nombre: cliente.nombre,
+        cliente_direccion: cliente.direccion || "",
         cliente_telefono: cliente.telefono,
+        nota_efectivo: metodoPago === "efectivo" ? notaEfectivo.trim() : "",
         local: localId || null,
       });
 
@@ -152,6 +177,7 @@ const Checkout = () => {
         cliente: {
           ...cliente,
         },
+        nota_efectivo: metodoPago === "efectivo" ? notaEfectivo.trim() : "",
         productos: productosCliente,
         total,
         local: localId || null,
@@ -296,17 +322,33 @@ const Checkout = () => {
             {metodoPago === "efectivo" && (
               <div>
                 <label className="block font-medium mb-1">¿Dónde pagarás?</label>
-                <select
-                  value={tipoPagoEfectivo}
-                  onChange={(e) => setTipoPagoEfectivo(e.target.value)}
+                {tipoPedido === "delivery" ? (
+                  <div className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-700">
+                    Al recibir en casa
+                  </div>
+                ) : (
+                  <select
+                    value={tipoPagoEfectivo}
+                    onChange={(e) => setTipoPagoEfectivo(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="">-- Selecciona --</option>
+                    <option value="caja">En caja (local)</option>
+                  </select>
+                )}
+              </div>
+            )}
+
+            {metodoPago === "efectivo" && tipoPedido === "delivery" && (
+              <div>
+                <label className="block font-medium mb-1">Nota de pago (opcional)</label>
+                <input
+                  type="text"
+                  value={notaEfectivo}
+                  onChange={(e) => setNotaEfectivo(e.target.value)}
+                  placeholder="Ej: Pago justo o pago con $20.000 para vuelto"
                   className="w-full border rounded px-3 py-2"
-                >
-                  <option value="">-- Selecciona --</option>
-                  <option value="caja">En caja (local)</option>
-                  {tipoPedido === "delivery" && (
-                    <option value="domicilio">Al recibir en casa</option>
-                  )}
-                </select>
+                />
               </div>
             )}
 

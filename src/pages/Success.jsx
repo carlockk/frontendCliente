@@ -36,10 +36,15 @@ const Success = () => {
           return;
         }
 
+        let detalleDestinoId = venta._id;
+
         if (!user?.token) {
           const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
-          const existe = prev.some((v) => v.backend_id === venta._id);
-          if (!existe) {
+          const existente = prev.find((v) => v.backend_id === venta._id);
+
+          if (existente?._id) {
+            detalleDestinoId = existente._id;
+          } else {
             const ordenLocal = {
               _id: `local_${Date.now().toString(36)}`,
               backend_id: venta._id,
@@ -51,10 +56,11 @@ const Success = () => {
               local: venta.local || null,
             };
             localStorage.setItem("ventas_local", JSON.stringify([ordenLocal, ...prev]));
+            detalleDestinoId = ordenLocal._id;
           }
         }
 
-        setDetalleId(venta._id);
+        setDetalleId(detalleDestinoId);
         setEstado(`Pago exitoso. Pedido #${venta.numero_pedido} registrado. Serás redirigido en 4 segundos.`);
       } catch (err) {
         setEstado(err?.response?.data?.error || "Hubo un problema al confirmar el pago. Intenta recargar.");
