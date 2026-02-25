@@ -1,8 +1,11 @@
 import { useCart } from "../contexts/cart/CartContext";
 import { Link } from "react-router-dom";
+import { useWebSchedule } from "../contexts/WebScheduleContext";
 
 const Cart = () => {
   const { state, dispatch } = useCart();
+  const { hasSchedule, isOpenNow, closedMessage } = useWebSchedule();
+  const checkoutDisabledBySchedule = hasSchedule && !isOpenNow;
 
   const getAgregadosKey = (agregados = []) =>
     Array.isArray(agregados) && agregados.length > 0
@@ -62,12 +65,25 @@ const Cart = () => {
             <p className="text-lg font-bold mb-2">
               Total: ${state.total.toLocaleString("es-CL")}
             </p>
-            <Link
-              to="/checkout"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Finalizar Compra
-            </Link>
+            {checkoutDisabledBySchedule && (
+              <p className="text-sm text-red-600 mb-2">{closedMessage}</p>
+            )}
+            {checkoutDisabledBySchedule ? (
+              <button
+                type="button"
+                disabled
+                className="bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed"
+              >
+                Finalizar Compra
+              </button>
+            ) : (
+              <Link
+                to="/checkout"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Finalizar Compra
+              </Link>
+            )}
           </div>
         </>
       )}

@@ -1,9 +1,12 @@
 import { useCart } from "../contexts/cart/CartContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWebSchedule } from "../contexts/WebScheduleContext";
 
 export default function SlideCart({ isOpen, toggle }) {
   const { state, dispatch } = useCart();
+  const { hasSchedule, isOpenNow, closedMessage } = useWebSchedule();
+  const checkoutDisabledBySchedule = hasSchedule && !isOpenNow;
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
@@ -28,6 +31,7 @@ export default function SlideCart({ isOpen, toggle }) {
   };
 
   const handleCheckout = () => {
+    if (checkoutDisabledBySchedule) return;
     navigate("/checkout");
     toggle(); // cerrar el slide si está abierto
   };
@@ -131,10 +135,18 @@ export default function SlideCart({ isOpen, toggle }) {
               <p className="text-lg font-semibold mb-2">
                 Total: ${state.total.toLocaleString()}
               </p>
+              {checkoutDisabledBySchedule && (
+                <p className="text-xs text-red-600 mb-2">{closedMessage}</p>
+              )}
 
               <button
                 onClick={handleCheckout}
-                className="block w-full text-center bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md font-semibold"
+                disabled={checkoutDisabledBySchedule}
+                className={`block w-full text-center text-white py-2 rounded-md font-semibold ${
+                  checkoutDisabledBySchedule
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600"
+                }`}
               >
                 💳 Ir al Pago
               </button>

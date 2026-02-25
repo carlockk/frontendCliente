@@ -4,17 +4,21 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
+import { useWebSchedule } from "../contexts/WebScheduleContext";
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const { user } = useAuth();
   const { localId, locales } = useLocal();
+  const { hasSchedule, isOpenNow, closedMessage, todayScheduleText, isPickupTimeAllowed } =
+    useWebSchedule();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [metodoPago, setMetodoPago] = useState("");
   const [tipoPagoEfectivo, setTipoPagoEfectivo] = useState("");
   const [tipoPedido, setTipoPedido] = useState("tienda");
+  const [horaRetiro, setHoraRetiro] = useState("");
   const [notaEfectivo, setNotaEfectivo] = useState("");
 
   const [cliente, setCliente] = useState({
@@ -45,6 +49,12 @@ const Checkout = () => {
       setTipoPagoEfectivo("");
     }
   }, [metodoPago, tipoPedido, tipoPagoEfectivo]);
+
+  useEffect(() => {
+    if (tipoPedido !== "retiro") {
+      setHoraRetiro("");
+    }
+  }, [tipoPedido]);
 
   const getAgregadosKey = (agregados = []) =>
     Array.isArray(agregados) && agregados.length > 0
@@ -95,6 +105,22 @@ const Checkout = () => {
     if (tipoPedido === "delivery" && !cliente.direccion) {
       alert("Debes ingresar una dirección para delivery.");
       return false;
+    }
+
+    if (hasSchedule && !isOpenNow) {
+      alert(closedMessage || "El sitio esta cerrado por horario de atencion.");
+      return false;
+    }
+
+    if (tipoPedido === "retiro") {
+      if (!horaRetiro) {
+        alert("Debes indicar la hora de retiro.");
+        return false;
+      }
+      if (!isPickupTimeAllowed(horaRetiro, new Date().getDay())) {
+        alert("La hora de retiro debe estar dentro del horario de atencion de hoy.");
+        return false;
+      }
     }
 
     if (!esPagoOnline) {
@@ -152,6 +178,7 @@ const Checkout = () => {
         total,
         tipo_pago: tipoPagoFinal,
         tipo_pedido: tipoPedido,
+        hora_retiro: tipoPedido === "retiro" ? horaRetiro : "",
         cliente_email: cliente.correo || user?.email || "sincorreo",
         cliente_nombre: cliente.nombre,
         cliente_direccion: cliente.direccion || "",
@@ -174,6 +201,7 @@ const Checkout = () => {
         fecha: res?.data?.fecha || new Date().toISOString(),
         tipo_pago: tipoPagoFinal,
         estado_pedido: res?.data?.estado_pedido || "pendiente",
+        hora_retiro: tipoPedido === "retiro" ? horaRetiro : "",
         cliente: {
           ...cliente,
         },
@@ -207,6 +235,7 @@ const Checkout = () => {
         order: {
           local: localId || null,
           tipo_pedido: tipoPedido,
+          hora_retiro: tipoPedido === "retiro" ? horaRetiro : "",
           cliente: {
             nombre: cliente.nombre,
             telefono: cliente.telefono,
@@ -303,8 +332,30 @@ const Checkout = () => {
             {tipoPedido === "delivery" && (
               <input type="text" name="direccion" placeholder="Dirección" className="w-full border rounded px-3 py-2" onChange={handleInput} />
             )}
+            {tipoPedido === "retiro" && (
+              <div>
+                <label className="block font-medium mb-1">Hora de retiro:</label>
+                <input
+                  type="time"
+                  value={horaRetiro}
+                  onChange={(e) => setHoraRetiro(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {todayScheduleText
+                    ? `Horario de hoy: ${todayScheduleText}`
+                    : "No hay horario cargado para hoy."}
+                </p>
+              </div>
+            )}
             <input type="email" name="correo" placeholder="Correo electrónico (opcional)" className="w-full border rounded px-3 py-2" onChange={handleInput} />
             <input type="text" name="codigoPostal" placeholder="Código postal (opcional)" className="w-full border rounded px-3 py-2" onChange={handleInput} />
+
+            {hasSchedule && !isOpenNow && (
+              <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {closedMessage}
+              </div>
+            )}
 
             <div>
               <label className="block font-medium mb-1">Método de pago:</label>
@@ -355,7 +406,7 @@ const Checkout = () => {
             {metodoPago === "online" ? (
               <button
                 onClick={handlePagarConWebpay}
-                disabled={loading}
+                disabled={loading || (hasSchedule && !isOpenNow)}
                 className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
               >
                 {loading ? "Redirigiendo a Webpay..." : "Pagar con Webpay 💳"}
@@ -363,7 +414,7 @@ const Checkout = () => {
             ) : (
               <button
                 onClick={crearOrden}
-                disabled={loading}
+                disabled={loading || (hasSchedule && !isOpenNow)}
                 className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
               >
                 {loading ? "Procesando..." : "Confirmar Pedido"}

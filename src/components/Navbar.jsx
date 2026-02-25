@@ -3,12 +3,14 @@ import { useCart } from "../contexts/cart/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useLocal } from "../contexts/LocalContext";
+import { useWebSchedule } from "../contexts/WebScheduleContext";
 import api from "../api";
 
 const Navbar = ({ onCartClick }) => {
   const { state } = useCart();
   const { isLogged, user, logout } = useAuth();
   const { locales, localId, loadingLocales, errorLocales, selectLocal } = useLocal();
+  const { hasSchedule, isOpenNow, closedMessage } = useWebSchedule();
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
   const navigate = useNavigate();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -182,6 +184,12 @@ const Navbar = ({ onCartClick }) => {
 
         </div>
       </div>
+
+      {localId && hasSchedule && !isOpenNow && (
+        <div className="bg-red-700 text-white text-xs sm:text-sm px-4 py-2 text-center">
+          {closedMessage}
+        </div>
+      )}
 
       {/* Slide lateral para móviles */}
       {menuVisible && (
