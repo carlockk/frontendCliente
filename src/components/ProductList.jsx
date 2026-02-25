@@ -224,7 +224,7 @@ const ProductList = () => {
                           </button>
                           <button
                             onClick={() => agregarAlCarrito(producto)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full shadow"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-0.5 text-sm rounded-full shadow"
                             title="Agregar al carrito"
                           >
                             +
