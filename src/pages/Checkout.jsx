@@ -27,6 +27,7 @@ const Checkout = () => {
   const [sugerenciasDireccion, setSugerenciasDireccion] = useState([]);
   const [buscandoDireccion, setBuscandoDireccion] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [geoCoords, setGeoCoords] = useState(null);
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -53,6 +54,37 @@ const Checkout = () => {
   const limpiarSugerenciasDireccion = () => {
     setSugerenciasDireccion([]);
     setBuscandoDireccion(false);
+  };
+  const obtenerPrediccionesDireccion = (query, options = {}) => {
+    if (!autocompleteServiceRef.current || !window.google?.maps?.places) {
+      return;
+    }
+
+    const request = {
+      input: query,
+      sessionToken: sessionTokenRef.current || undefined,
+    };
+
+    if (options?.coords?.lat && options?.coords?.lng && window.google?.maps?.LatLng) {
+      request.location = new window.google.maps.LatLng(options.coords.lat, options.coords.lng);
+      request.radius = 2500;
+    }
+
+    autocompleteServiceRef.current.getPlacePredictions(request, (predictions, status) => {
+      if (!isMountedRef.current) return;
+      if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
+        setSugerenciasDireccion([]);
+        setBuscandoDireccion(false);
+        return;
+      }
+      setSugerenciasDireccion(
+        predictions.slice(0, 5).map((item) => ({
+          placeId: item.place_id,
+          texto: item.description,
+        }))
+      );
+      setBuscandoDireccion(false);
+    });
   };
 
   useEffect(() => {
@@ -155,29 +187,9 @@ const Checkout = () => {
 
     setBuscandoDireccion(true);
     debounceDireccionRef.current = setTimeout(() => {
-      autocompleteServiceRef.current.getPlacePredictions(
-        {
-          input: query,
-          sessionToken: sessionTokenRef.current || undefined,
-        },
-        (predictions, status) => {
-          if (!isMountedRef.current) return;
-          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
-            setSugerenciasDireccion([]);
-            setBuscandoDireccion(false);
-            return;
-          }
-          setSugerenciasDireccion(
-            predictions.slice(0, 5).map((item) => ({
-              placeId: item.place_id,
-              texto: item.description,
-            }))
-          );
-          setBuscandoDireccion(false);
-        }
-      );
+      obtenerPrediccionesDireccion(query, { coords: geoCoords });
     }, 300);
-  }, [cliente.direccion, mapsReady, tipoPedido]);
+  }, [cliente.direccion, mapsReady, tipoPedido, geoCoords]);
 
   const seleccionarSugerenciaDireccion = (sugerencia) => {
     const placeId = sugerencia?.placeId;
@@ -225,6 +237,7 @@ const Checkout = () => {
             ...prev,
             direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
           }));
+          setGeoCoords({ lat, lng });
           setGeoLoading(false);
           return;
         }
@@ -237,8 +250,19 @@ const Checkout = () => {
                 ? results[0].formatted_address
                 : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
-            setCliente((prev) => ({ ...prev, direccion }));
-            limpiarSugerenciasDireccion();
+            setGeoCoords({ lat, lng });
+            const confirma = window.confirm(
+              `Detectamos esta direccion:\n${direccion}\n\n¿Quieres usarla?`
+            );
+
+            if (confirma) {
+              setCliente((prev) => ({ ...prev, direccion }));
+              setBuscandoDireccion(true);
+              obtenerPrediccionesDireccion(direccion, { coords: { lat, lng } });
+            } else {
+              setBuscandoDireccion(true);
+              obtenerPrediccionesDireccion(cliente.direccion || " ", { coords: { lat, lng } });
+            }
             setGeoLoading(false);
           }
         );
@@ -561,6 +585,11 @@ const Checkout = () => {
                 )}
                 {buscandoDireccion && cliente.direccion?.trim().length >= 3 && (
                   <p className="text-xs text-gray-500 mt-1">Buscando direcciones...</p>
+                )}
+                {geoCoords && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sugerencias cercanas a tu ubicacion actual.
+                  </p>
                 )}
                 {sugerenciasDireccion.length > 0 && (
                   <div className="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-56 overflow-auto">
