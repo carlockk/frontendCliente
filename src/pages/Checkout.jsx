@@ -1,10 +1,12 @@
 import { useCart } from "../contexts/cart/CartContext";
 import api from "../api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
 import { useWebSchedule } from "../contexts/WebScheduleContext";
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -20,6 +22,11 @@ const Checkout = () => {
   const [tipoPedido, setTipoPedido] = useState("tienda");
   const [horaRetiro, setHoraRetiro] = useState("");
   const [notaEfectivo, setNotaEfectivo] = useState("");
+  const [mapsReady, setMapsReady] = useState(false);
+  const [mapsError, setMapsError] = useState("");
+  const [sugerenciasDireccion, setSugerenciasDireccion] = useState([]);
+  const [buscandoDireccion, setBuscandoDireccion] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -28,9 +35,24 @@ const Checkout = () => {
     correo: "",
     codigoPostal: "",
   });
+  const autocompleteServiceRef = useRef(null);
+  const placesServiceRef = useRef(null);
+  const geocoderRef = useRef(null);
+  const sessionTokenRef = useRef(null);
+  const placesContainerRef = useRef(null);
+  const debounceDireccionRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   const handleInput = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
+  };
+  const handleDireccionInput = (e) => {
+    const value = e.target.value;
+    setCliente((prev) => ({ ...prev, direccion: value }));
+  };
+  const limpiarSugerenciasDireccion = () => {
+    setSugerenciasDireccion([]);
+    setBuscandoDireccion(false);
   };
 
   useEffect(() => {
@@ -55,6 +77,179 @@ const Checkout = () => {
       setHoraRetiro("");
     }
   }, [tipoPedido]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (debounceDireccionRef.current) {
+        clearTimeout(debounceDireccionRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) return;
+
+    const setServices = () => {
+      if (!window.google?.maps?.places) return false;
+
+      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+      placesServiceRef.current = new window.google.maps.places.PlacesService(
+        placesContainerRef.current || document.createElement("div")
+      );
+      geocoderRef.current = new window.google.maps.Geocoder();
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+      setMapsReady(true);
+      setMapsError("");
+      return true;
+    };
+
+    if (setServices()) return;
+
+    const existingScript = document.querySelector(
+      'script[data-google-maps="places-autocomplete"]'
+    );
+    if (existingScript) {
+      existingScript.addEventListener("load", setServices);
+      existingScript.addEventListener("error", () => {
+        setMapsError("No se pudo cargar Google Maps.");
+      });
+      return () => {
+        existingScript.removeEventListener("load", setServices);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.setAttribute("data-google-maps", "places-autocomplete");
+    script.onload = () => {
+      if (!setServices()) {
+        setMapsError("No se pudo inicializar Google Maps.");
+      }
+    };
+    script.onerror = () => {
+      setMapsError("No se pudo cargar Google Maps.");
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (tipoPedido !== "delivery") {
+      limpiarSugerenciasDireccion();
+      return;
+    }
+    if (!mapsReady || !autocompleteServiceRef.current) return;
+
+    const query = cliente.direccion?.trim() || "";
+    if (!query || query.length < 3) {
+      limpiarSugerenciasDireccion();
+      return;
+    }
+
+    if (debounceDireccionRef.current) {
+      clearTimeout(debounceDireccionRef.current);
+    }
+
+    setBuscandoDireccion(true);
+    debounceDireccionRef.current = setTimeout(() => {
+      autocompleteServiceRef.current.getPlacePredictions(
+        {
+          input: query,
+          sessionToken: sessionTokenRef.current || undefined,
+        },
+        (predictions, status) => {
+          if (!isMountedRef.current) return;
+          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
+            setSugerenciasDireccion([]);
+            setBuscandoDireccion(false);
+            return;
+          }
+          setSugerenciasDireccion(
+            predictions.slice(0, 5).map((item) => ({
+              placeId: item.place_id,
+              texto: item.description,
+            }))
+          );
+          setBuscandoDireccion(false);
+        }
+      );
+    }, 300);
+  }, [cliente.direccion, mapsReady, tipoPedido]);
+
+  const seleccionarSugerenciaDireccion = (sugerencia) => {
+    const placeId = sugerencia?.placeId;
+    if (!placeId || !placesServiceRef.current) {
+      setCliente((prev) => ({ ...prev, direccion: sugerencia?.texto || prev.direccion }));
+      limpiarSugerenciasDireccion();
+      return;
+    }
+
+    placesServiceRef.current.getDetails(
+      {
+        placeId,
+        fields: ["formatted_address", "name"],
+        sessionToken: sessionTokenRef.current || undefined,
+      },
+      (place, status) => {
+        const finalAddress =
+          status === window.google.maps.places.PlacesServiceStatus.OK
+            ? place?.formatted_address || place?.name || sugerencia.texto
+            : sugerencia.texto;
+
+        setCliente((prev) => ({ ...prev, direccion: finalAddress || prev.direccion }));
+        limpiarSugerenciasDireccion();
+        if (window.google?.maps?.places?.AutocompleteSessionToken) {
+          sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+        }
+      }
+    );
+  };
+
+  const usarUbicacionActual = () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no soporta geolocalizacion.");
+      return;
+    }
+
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        if (!geocoderRef.current) {
+          setCliente((prev) => ({
+            ...prev,
+            direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+          }));
+          setGeoLoading(false);
+          return;
+        }
+
+        geocoderRef.current.geocode(
+          { location: { lat, lng } },
+          (results, status) => {
+            const direccion =
+              status === "OK" && Array.isArray(results) && results[0]?.formatted_address
+                ? results[0].formatted_address
+                : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+            setCliente((prev) => ({ ...prev, direccion }));
+            limpiarSugerenciasDireccion();
+            setGeoLoading(false);
+          }
+        );
+      },
+      () => {
+        setGeoLoading(false);
+        alert("No se pudo obtener tu ubicacion actual.");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
 
   const getAgregadosKey = (agregados = []) =>
     Array.isArray(agregados) && agregados.length > 0
@@ -330,7 +525,59 @@ const Checkout = () => {
             <input type="text" name="nombre" placeholder="Nombre completo" className="w-full border rounded px-3 py-2" onChange={handleInput} />
             <input type="tel" name="telefono" placeholder="Teléfono" className="w-full border rounded px-3 py-2" onChange={handleInput} />
             {tipoPedido === "delivery" && (
-              <input type="text" name="direccion" placeholder="Dirección" className="w-full border rounded px-3 py-2" onChange={handleInput} />
+              <div className="relative">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="direccion"
+                    placeholder="Dirección"
+                    className="w-full border rounded px-3 py-2"
+                    value={cliente.direccion}
+                    onChange={handleDireccionInput}
+                    autoComplete="off"
+                    onBlur={() => {
+                      setTimeout(() => limpiarSugerenciasDireccion(), 150);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={usarUbicacionActual}
+                    disabled={geoLoading}
+                    className="shrink-0 border rounded px-3 py-2 text-sm bg-white hover:bg-gray-50 disabled:opacity-60"
+                    title="Usar mi ubicacion actual"
+                  >
+                    {geoLoading ? "Ubicando..." : "Mi ubicacion"}
+                  </button>
+                </div>
+                {mapsError && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    {mapsError}
+                  </p>
+                )}
+                {!GOOGLE_MAPS_API_KEY && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sugerencias de Google Maps no configuradas.
+                  </p>
+                )}
+                {buscandoDireccion && cliente.direccion?.trim().length >= 3 && (
+                  <p className="text-xs text-gray-500 mt-1">Buscando direcciones...</p>
+                )}
+                {sugerenciasDireccion.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-56 overflow-auto">
+                    {sugerenciasDireccion.map((sug) => (
+                      <button
+                        key={sug.placeId}
+                        type="button"
+                        onClick={() => seleccionarSugerenciaDireccion(sug)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                      >
+                        {sug.texto}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div ref={placesContainerRef} className="hidden" />
+              </div>
             )}
             {tipoPedido === "retiro" && (
               <div>
