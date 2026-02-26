@@ -28,6 +28,7 @@ const Checkout = () => {
   const [buscandoDireccion, setBuscandoDireccion] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoCoords, setGeoCoords] = useState(null);
+  const [mostrarMapa, setMostrarMapa] = useState(false);
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -41,6 +42,9 @@ const Checkout = () => {
   const geocoderRef = useRef(null);
   const sessionTokenRef = useRef(null);
   const placesContainerRef = useRef(null);
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
   const debounceDireccionRef = useRef(null);
   const isMountedRef = useRef(true);
 
@@ -54,6 +58,31 @@ const Checkout = () => {
   const limpiarSugerenciasDireccion = () => {
     setSugerenciasDireccion([]);
     setBuscandoDireccion(false);
+  };
+  const actualizarDireccionDesdeCoords = (lat, lng, opts = {}) => {
+    if (!geocoderRef.current) {
+      setCliente((prev) => ({
+        ...prev,
+        direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      }));
+      return;
+    }
+
+    geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+      const direccion =
+        status === "OK" && Array.isArray(results) && results[0]?.formatted_address
+          ? results[0].formatted_address
+          : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+      setCliente((prev) => ({ ...prev, direccion }));
+      setGeoCoords({ lat, lng });
+      setBuscandoDireccion(true);
+      obtenerPrediccionesDireccion(direccion, { coords: { lat, lng } });
+
+      if (opts?.centerMap && mapRef.current) {
+        mapRef.current.setCenter({ lat, lng });
+      }
+    });
   };
   const obtenerPrediccionesDireccion = (query, options = {}) => {
     if (!autocompleteServiceRef.current || !window.google?.maps?.places) {
@@ -190,6 +219,52 @@ const Checkout = () => {
       obtenerPrediccionesDireccion(query, { coords: geoCoords });
     }, 300);
   }, [cliente.direccion, mapsReady, tipoPedido, geoCoords]);
+
+  useEffect(() => {
+    if (tipoPedido !== "delivery" || !mostrarMapa || !mapsReady || !mapContainerRef.current) {
+      return;
+    }
+    if (!window.google?.maps) return;
+
+    const center = geoCoords || { lat: -33.4489, lng: -70.6693 };
+
+    if (!mapRef.current) {
+      mapRef.current = new window.google.maps.Map(mapContainerRef.current, {
+        center,
+        zoom: geoCoords ? 17 : 14,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+
+      markerRef.current = new window.google.maps.Marker({
+        position: center,
+        map: mapRef.current,
+        draggable: true,
+      });
+
+      mapRef.current.addListener("click", (e) => {
+        const lat = e.latLng?.lat();
+        const lng = e.latLng?.lng();
+        if (typeof lat !== "number" || typeof lng !== "number") return;
+        markerRef.current?.setPosition({ lat, lng });
+        actualizarDireccionDesdeCoords(lat, lng);
+      });
+
+      markerRef.current.addListener("dragend", (e) => {
+        const lat = e.latLng?.lat();
+        const lng = e.latLng?.lng();
+        if (typeof lat !== "number" || typeof lng !== "number") return;
+        actualizarDireccionDesdeCoords(lat, lng);
+      });
+      return;
+    }
+
+    if (markerRef.current && geoCoords) {
+      markerRef.current.setPosition(geoCoords);
+      mapRef.current.setCenter(geoCoords);
+    }
+  }, [tipoPedido, mostrarMapa, mapsReady, geoCoords]);
 
   const seleccionarSugerenciaDireccion = (sugerencia) => {
     const placeId = sugerencia?.placeId;
@@ -572,6 +647,16 @@ const Checkout = () => {
                   >
                     {geoLoading ? "Ubicando..." : "Mi ubicacion"}
                   </button>
+                  {mapsReady && (
+                    <button
+                      type="button"
+                      onClick={() => setMostrarMapa((prev) => !prev)}
+                      className="shrink-0 border rounded px-3 py-2 text-sm bg-white hover:bg-gray-50"
+                      title="Elegir en mapa"
+                    >
+                      {mostrarMapa ? "Ocultar mapa" : "Ver mapa"}
+                    </button>
+                  )}
                 </div>
                 {mapsError && (
                   <p className="text-xs text-amber-600 mt-1">
@@ -590,6 +675,16 @@ const Checkout = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Sugerencias cercanas a tu ubicacion actual.
                   </p>
+                )}
+                {mostrarMapa && mapsReady && (
+                  <div className="mt-2">
+                    <div className="rounded border overflow-hidden h-56">
+                      <div ref={mapContainerRef} className="w-full h-full" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Haz clic en el mapa o mueve el marcador para ajustar la dirección.
+                    </p>
+                  </div>
                 )}
                 {sugerenciasDireccion.length > 0 && (
                   <div className="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-56 overflow-auto">
