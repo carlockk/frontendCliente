@@ -2,6 +2,7 @@ import { useCart } from "../contexts/cart/CartContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebSchedule } from "../contexts/WebScheduleContext";
+import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
 
 export default function SlideCart({ isOpen, toggle }) {
   const { state, dispatch } = useCart();
@@ -76,7 +77,9 @@ export default function SlideCart({ isOpen, toggle }) {
               {state.items.length === 0 ? (
                 <p className="text-gray-500">El carrito está vacío.</p>
               ) : (
-                state.items.map((item) => (
+                state.items.map((item) => {
+                  const agregados = normalizeOrderAddons(item.agregados);
+                  return (
                   <div
                     key={getCartItemId(item)}
                     className="mb-4 flex justify-between items-center border-b pb-2"
@@ -86,10 +89,15 @@ export default function SlideCart({ isOpen, toggle }) {
                       {item.varianteNombre && (
                         <p className="text-xs text-gray-500">Variación: {item.varianteNombre}</p>
                       )}
-                      {Array.isArray(item.agregados) && item.agregados.length > 0 && (
-                        <p className="text-xs text-gray-500">
-                          Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
-                        </p>
+                      {agregados.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          <p>Agregados:</p>
+                          {agregados.map((agg, idx) => (
+                            <p key={`${agg.agregadoId || agg.nombre}-${idx}`}>
+                              + {formatOrderAddon(agg)}
+                            </p>
+                          ))}
+                        </div>
                       )}
                       <div className="flex items-center gap-3 mt-1">
                         <button
@@ -127,7 +135,8 @@ export default function SlideCart({ isOpen, toggle }) {
                       </button>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 

@@ -1,6 +1,7 @@
 import { useCart } from "../contexts/cart/CartContext";
 import { Link } from "react-router-dom";
 import { useWebSchedule } from "../contexts/WebScheduleContext";
+import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
 
 const Cart = () => {
   const { state, dispatch } = useCart();
@@ -35,17 +36,22 @@ const Cart = () => {
       ) : (
         <>
           <ul className="divide-y divide-gray-200">
-            {state.items.map((item) => (
+            {state.items.map((item) => {
+              const agregados = normalizeOrderAddons(item.agregados);
+              return (
               <li key={getCartItemId(item)} className="flex items-center justify-between py-3">
                 <div>
                   <p className="font-semibold">{item.nombre}</p>
                   {item.varianteNombre && (
                     <p className="text-xs text-gray-500">Variación: {item.varianteNombre}</p>
                   )}
-                  {Array.isArray(item.agregados) && item.agregados.length > 0 && (
-                    <p className="text-xs text-gray-500">
-                      Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
-                    </p>
+                  {agregados.length > 0 && (
+                    <div className="text-xs text-gray-500">
+                      <p>Agregados:</p>
+                      {agregados.map((agg, idx) => (
+                        <p key={`${agg.agregadoId || agg.nombre}-${idx}`}>+ {formatOrderAddon(agg)}</p>
+                      ))}
+                    </div>
                   )}
                   <p className="text-sm text-gray-500">
                     ${item.precio?.toLocaleString("es-CL")} x {item.quantity}
@@ -58,7 +64,8 @@ const Cart = () => {
                   Eliminar
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
 
           <div className="mt-6 text-right">

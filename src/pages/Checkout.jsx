@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
 import { useWebSchedule } from "../contexts/WebScheduleContext";
+import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
@@ -567,7 +568,9 @@ const Checkout = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         <div>
           <h2 className="text-xl font-semibold mb-4">Resumen del carrito</h2>
-          {state.items.map((item) => (
+          {state.items.map((item) => {
+            const agregados = normalizeOrderAddons(item.agregados);
+            return (
             <div
               key={
                 item.idCarrito ||
@@ -593,9 +596,9 @@ const Checkout = () => {
                     Variación: {item.varianteNombre}
                   </span>
                 )}
-                {Array.isArray(item.agregados) && item.agregados.length > 0 && (
+                {agregados.length > 0 && (
                   <span className="block text-xs text-gray-500">
-                    Agregados: {item.agregados.map((agg) => agg.nombre).join(", ")}
+                    Agregados: {agregados.map((agg) => formatOrderAddon(agg)).join(", ")}
                   </span>
                 )}
                 <span className="block text-sm text-gray-600">
@@ -603,7 +606,8 @@ const Checkout = () => {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div>

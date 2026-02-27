@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
+import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
 
 const DetalleCompra = () => {
   const { id } = useParams();
@@ -113,7 +114,9 @@ const DetalleCompra = () => {
             </tr>
           </thead>
           <tbody>
-            {venta.productos.map((prod, i) => (
+            {venta.productos.map((prod, i) => {
+              const agregados = normalizeOrderAddons(prod.agregados);
+              return (
               <tr key={i} className="border-b">
                 <td>
                   {prod.nombre}
@@ -122,9 +125,9 @@ const DetalleCompra = () => {
                       Variación: {prod.varianteNombre || prod.variante_nombre}
                     </p>
                   )}
-                  {Array.isArray(prod.agregados) && prod.agregados.length > 0 && (
+                  {agregados.length > 0 && (
                     <p className="text-xs text-gray-500">
-                      Agregados: {prod.agregados.map((agg) => agg.nombre).join(", ")}
+                      Agregados: {agregados.map((agg) => formatOrderAddon(agg)).join(", ")}
                     </p>
                   )}
                 </td>
@@ -132,7 +135,8 @@ const DetalleCompra = () => {
                 <td>${prod.precio_unitario.toLocaleString("es-CL")}</td>
                 <td>${prod.subtotal.toLocaleString("es-CL")}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 
