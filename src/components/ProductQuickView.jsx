@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../contexts/cart/CartContext";
-import { getProductAddons } from "../utils/productAddons";
+import { getProductAddonGroups } from "../utils/productAddons";
 
 export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFavorite }) {
   const [showAnimation, setShowAnimation] = useState(false);
@@ -30,7 +30,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
 
   if (!isOpen || !producto) return null;
   const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
-  const agregadosDisponibles = getProductAddons(producto);
+  const gruposAgregados = getProductAddonGroups(producto);
   const tieneVariantes = variantes.length > 0;
   const getVarianteKey = (v, idx) => String(v?._id || `idx-${idx}`);
   const varianteSeleccionadaIndice = variantes.findIndex(
@@ -43,6 +43,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
     agregadoId: agg._id || agg.agregadoId || null,
     nombre: agg.nombre,
     precio: Number(agg.precio) || 0,
+    grupoKey: agg.grupoKey || "__sin_grupo__",
   });
 
   const buildAgregadosKey = (agregados = []) =>
@@ -51,14 +52,24 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
       .sort()
       .join("|");
 
-  const toggleAgregado = (agregado) => {
+  const toggleAgregado = (agregado, grupoKey) => {
     const agregadoId = agregado._id || agregado.agregadoId || agregado.nombre || null;
     setAgregadosSeleccionados((prev) => {
       const existe = prev.some((item) => item.agregadoId === agregadoId);
       if (existe) {
         return prev.filter((item) => item.agregadoId !== agregadoId);
       }
-      return [...prev, normalizarAgregado(agregado)];
+      return [...prev, normalizarAgregado({ ...agregado, grupoKey })];
+    });
+  };
+
+  const seleccionarUnico = (agregado, grupoKey) => {
+    const agregadoId = agregado._id || agregado.agregadoId || agregado.nombre || null;
+    if (!agregadoId) return;
+
+    setAgregadosSeleccionados((prev) => {
+      const sinGrupo = prev.filter((item) => item.grupoKey !== grupoKey);
+      return [...sinGrupo, normalizarAgregado({ ...agregado, grupoKey })];
     });
   };
 
@@ -177,34 +188,48 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
           </div>
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-1">Agregados opcionales</h3>
-            {agregadosDisponibles.length > 0 ? (
-              <ul className="space-y-2">
-                {agregadosDisponibles.map((agg, idx) => {
-                  const agregadoId = agg._id || agg.agregadoId || `${agg.nombre}-${idx}`;
-                  const checked = agregadosSeleccionados.some(
-                    (item) =>
-                      item.agregadoId ===
-                      (agg._id || agg.agregadoId || agg.nombre || null)
-                  );
-                  return (
-                    <li key={agregadoId} className="text-xs text-gray-600">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleAgregado(agg)}
-                        />
-                        <span>
-                          {agg.nombre}
-                          {Number(agg.precio) > 0
-                            ? ` - +$${Number(agg.precio).toLocaleString("es-CL")}`
-                            : " - Incluido"}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+            {gruposAgregados.length > 0 ? (
+              <div className="space-y-3">
+                {gruposAgregados.map((grupo, gIdx) => (
+                  <div key={grupo.key || `grupo-${gIdx}`} className="rounded border border-gray-100 p-2">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">
+                      {grupo.titulo} {grupo.modoSeleccion === "unico" ? "(elige uno)" : "(elige uno o varios)"}
+                    </p>
+                    <ul className="space-y-2">
+                      {grupo.opciones.map((agg, idx) => {
+                        const agregadoId = agg._id || agg.agregadoId || `${agg.nombre}-${idx}`;
+                        const checked = agregadosSeleccionados.some(
+                          (item) =>
+                            item.agregadoId ===
+                            (agg._id || agg.agregadoId || agg.nombre || null)
+                        );
+                        return (
+                          <li key={agregadoId} className="text-xs text-gray-600">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type={grupo.modoSeleccion === "unico" ? "radio" : "checkbox"}
+                                name={grupo.modoSeleccion === "unico" ? `grupo-${grupo.key}` : undefined}
+                                checked={checked}
+                                onChange={() =>
+                                  grupo.modoSeleccion === "unico"
+                                    ? seleccionarUnico(agg, grupo.key)
+                                    : toggleAgregado(agg, grupo.key)
+                                }
+                              />
+                              <span>
+                                {agg.nombre}
+                                {Number(agg.precio) > 0
+                                  ? ` - +$${Number(agg.precio).toLocaleString("es-CL")}`
+                                  : " - Incluido"}
+                              </span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="text-xs text-gray-400">Este producto no tiene agregados configurados</p>
             )}
