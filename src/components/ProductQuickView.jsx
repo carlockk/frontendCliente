@@ -127,7 +127,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white w-full sm:max-w-md h-[90%] sm:h-auto sm:fixed sm:right-0 shadow-xl rounded-t-lg sm:rounded-lg overflow-y-auto transform transition-transform duration-300 ${
+        className={`bg-white w-full sm:max-w-md h-full sm:h-screen max-h-screen sm:fixed sm:right-0 sm:top-0 shadow-xl rounded-none sm:rounded-none overflow-y-auto transform transition-transform duration-300 ${
           showAnimation
             ? "translate-x-0 opacity-100"
             : "translate-x-full opacity-0"
