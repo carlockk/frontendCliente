@@ -37,6 +37,22 @@ const getAddonGroupRef = (addon) => {
   };
 };
 
+const getAddonGroupRefs = (addon) => {
+  const groups = Array.isArray(addon?.grupos) ? addon.grupos : [];
+  const normalized = groups
+    .map((group) => (group && typeof group === "object" ? group : null))
+    .filter(Boolean)
+    .map((group) => ({
+      key: toStringSafe(group?._id || group?.id || group?.grupoId || "__sin_grupo__"),
+      title: getGroupTitle(group, "Agregados"),
+      mode: getGroupMode(group),
+    }))
+    .filter((g) => g.key);
+
+  if (normalized.length > 0) return normalized;
+  return [getAddonGroupRef(addon)];
+};
+
 const toAddon = (item) => {
   if (!item || typeof item !== "object") return null;
   const nombre = String(item.nombre || item.titulo || "").trim();
@@ -128,8 +144,8 @@ export const getProductAddonGroups = (producto) => {
       return;
     }
 
-    const ref = getAddonGroupRef(item);
-    pushGroupItem(groupsByKey, ref, item);
+    const refs = getAddonGroupRefs(item);
+    refs.forEach((ref) => pushGroupItem(groupsByKey, ref, item));
   });
 
   const nestedGroups = [
