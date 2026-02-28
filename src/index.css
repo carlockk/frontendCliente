@@ -16,3 +16,15 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-in-out;
 }
+
+@keyframes sidebarDock {
+  0% { opacity: 0.98; transform: translateY(8px) scale(0.995); }
+  65% { opacity: 1; transform: translateY(-2px) scale(1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-sidebarDock {
+    animation: sidebarDock 0.45s ease-out;
+  }
+}

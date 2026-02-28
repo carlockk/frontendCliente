@@ -159,7 +159,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       <div className="hidden md:block">
-  <div className="p-4 bg-white border border-gray-200 rounded shadow space-y-6">
+  <div className="p-4 bg-white border border-gray-200 rounded shadow space-y-6 max-h-[calc(100vh-1rem)] overflow-y-auto animate-sidebarDock">
     {renderSidebarContent()}
   </div>
 </div>

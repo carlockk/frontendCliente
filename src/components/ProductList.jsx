@@ -240,7 +240,7 @@ const ProductList = () => {
         </div>
 
         {/* Sidebar escritorio alineado derecha sin margen */}
-        <div className="hidden md:block w-[280px] py-6 pr-0">
+        <div className="hidden md:block w-[280px] py-6 pr-0 self-start md:sticky md:top-2">
           <SidebarFiltros onFiltrar={aplicarFiltros} />
         </div>
       </div>
