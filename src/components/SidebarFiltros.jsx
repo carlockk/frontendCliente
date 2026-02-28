@@ -159,7 +159,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
       )}
 
       <div className="hidden md:block">
-  <div className="p-4 bg-white border border-gray-200 rounded shadow space-y-6 max-h-[calc(100vh-1rem)] overflow-y-auto animate-sidebarDock">
+  <div className="p-4 bg-white border border-gray-200 rounded shadow space-y-6 animate-sidebarDock">
     {renderSidebarContent()}
   </div>
 </div>
@@ -169,9 +169,9 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
   function renderSidebarContent() {
     return (
-      <div className="space-y-6 text-sm">
+      <div className="space-y-4 text-[13px]">
         <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Buscar producto</h3>
+          <h3 className="font-semibold mb-1 text-gray-700">Buscar producto</h3>
           <input
             type="text"
             placeholder="Ej: Strawberry"
@@ -182,7 +182,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
         </div>
 
         <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Categorías</h3>
+          <h3 className="font-semibold mb-1 text-gray-700">Categorías</h3>
           {!localId && (
             <p className="text-xs text-gray-500 mb-2">
               Selecciona un local para cargar las categorías.
@@ -194,7 +194,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
                 <ul
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-1"
+                  className="space-y-0.5"
                 >
                   {categorias.map((cat, index) => (
                     <Draggable key={cat._id} draggableId={cat._id} index={index}>
@@ -230,7 +230,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
         </div>
 
         <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Precio</h3>
+          <h3 className="font-semibold mb-1 text-gray-700">Precio</h3>
           <div className="flex gap-2">
             <input
               type="number"
@@ -262,8 +262,8 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
         {vistosRecientes.length > 0 && (
           <div>
-            <h3 className="font-semibold mb-2 text-gray-700">Vistos recientemente</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-1 text-gray-700">Vistos recientemente</h3>
+            <ul className="space-y-1.5">
               {vistosRecientes.map((prod) => (
                 <li key={prod._id} className="text-gray-700">
                   <div className="flex items-center gap-2">
