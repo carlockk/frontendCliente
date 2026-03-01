@@ -54,7 +54,30 @@ const ProductList = () => {
     const usuarioKey = user?._id || "guest";
     const key = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
     const raw = localStorage.getItem(key);
-    setOrdenCategorias(raw ? JSON.parse(raw) : []);
+    if (!raw) {
+      setOrdenCategorias([]);
+      return;
+    }
+    try {
+      const ordenIds = JSON.parse(raw);
+      if (!Array.isArray(ordenIds) || ordenIds.length === 0) {
+        setOrdenCategorias([]);
+        return;
+      }
+      api.get("/categorias").then((res) => {
+        const categorias = Array.isArray(res.data) ? res.data : [];
+        const porId = new Map(categorias.map((cat) => [cat._id, cat.nombre]));
+        const nombresOrdenados = ordenIds
+          .map((id) => porId.get(id))
+          .filter(Boolean);
+        const faltantes = categorias
+          .map((cat) => cat.nombre)
+          .filter((nombre) => !nombresOrdenados.includes(nombre));
+        setOrdenCategorias([...nombresOrdenados, ...faltantes]);
+      }).catch(() => setOrdenCategorias([]));
+    } catch {
+      setOrdenCategorias([]);
+    }
   }, [user, localId]);
 
   useEffect(() => {
@@ -125,16 +148,9 @@ const ProductList = () => {
     return acc;
   }, {});
 
-  const categoriaIdPorNombre = productos.reduce((acc, p) => {
-    const nombre = p.categoria?.nombre;
-    const id = p.categoria?._id;
-    if (nombre && id && !acc[nombre]) acc[nombre] = id;
-    return acc;
-  }, {});
-
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
-    const idxA = ordenCategorias.indexOf(categoriaIdPorNombre[a]);
-    const idxB = ordenCategorias.indexOf(categoriaIdPorNombre[b]);
+    const idxA = ordenCategorias.indexOf(a);
+    const idxB = ordenCategorias.indexOf(b);
 
     if (idxA === -1 && idxB === -1) return a.localeCompare(b);
     if (idxA === -1) return 1;

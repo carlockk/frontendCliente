@@ -5,6 +5,11 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLocal } from "../contexts/LocalContext";
 
 const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
+  const emitirOrdenCategorias = (listaCategorias) => {
+    onOrdenCategoriasChange?.(
+      Array.isArray(listaCategorias) ? listaCategorias.map((cat) => cat.nombre) : []
+    );
+  };
   const [categorias, setCategorias] = useState([]);
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
@@ -40,7 +45,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
     const fetchCategorias = async () => {
       if (!localId) {
         setCategorias([]);
-        onOrdenCategoriasChange?.([]);
+        emitirOrdenCategorias([]);
         return;
       }
       try {
@@ -54,10 +59,10 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
           const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
           const categoriasOrdenadas = [...reordenadas, ...faltantes];
           setCategorias(categoriasOrdenadas);
-          onOrdenCategoriasChange?.(categoriasOrdenadas.map((cat) => cat._id));
+          emitirOrdenCategorias(categoriasOrdenadas);
         } else {
           setCategorias(res.data);
-          onOrdenCategoriasChange?.(res.data.map((cat) => cat._id));
+          emitirOrdenCategorias(res.data);
         }
       } catch (error) {
         console.error("Error al cargar categorías:", error);
@@ -96,7 +101,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
 
     const ordenIds = nuevasCategorias.map((c) => c._id);
     localStorage.setItem(ordenStorageKey, JSON.stringify(ordenIds));
-    onOrdenCategoriasChange?.(ordenIds);
+    emitirOrdenCategorias(nuevasCategorias);
     mostrarToast("✅ Orden guardado");
   };
 
@@ -109,7 +114,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
       }
       const res = await api.get("/categorias");
       setCategorias(res.data);
-      onOrdenCategoriasChange?.(res.data.map((cat) => cat._id));
+      emitirOrdenCategorias(res.data);
       mostrarToast("🔄 Orden original restaurado");
     } catch (error) {
       console.error("Error al restablecer orden:", error);
