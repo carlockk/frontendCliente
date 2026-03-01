@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useAuth } from "../contexts/AuthContext";
 import { useLocal } from "../contexts/LocalContext";
 
-const SidebarFiltros = ({ onFiltrar }) => {
+const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
   const [categorias, setCategorias] = useState([]);
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
@@ -40,6 +40,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
     const fetchCategorias = async () => {
       if (!localId) {
         setCategorias([]);
+        onOrdenCategoriasChange?.([]);
         return;
       }
       try {
@@ -51,9 +52,12 @@ const SidebarFiltros = ({ onFiltrar }) => {
             .map(id => res.data.find(cat => cat._id === id))
             .filter(Boolean);
           const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
-          setCategorias([...reordenadas, ...faltantes]);
+          const categoriasOrdenadas = [...reordenadas, ...faltantes];
+          setCategorias(categoriasOrdenadas);
+          onOrdenCategoriasChange?.(categoriasOrdenadas.map((cat) => cat._id));
         } else {
           setCategorias(res.data);
+          onOrdenCategoriasChange?.(res.data.map((cat) => cat._id));
         }
       } catch (error) {
         console.error("Error al cargar categorías:", error);
@@ -64,7 +68,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
     const vistos = localStorage.getItem("productos_vistos");
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, [user, localId, ordenStorageKey]);
+  }, [user, localId, ordenStorageKey, onOrdenCategoriasChange]);
 
   useEffect(() => {
     aplicarFiltros();
@@ -92,6 +96,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
 
     const ordenIds = nuevasCategorias.map((c) => c._id);
     localStorage.setItem(ordenStorageKey, JSON.stringify(ordenIds));
+    onOrdenCategoriasChange?.(ordenIds);
     mostrarToast("✅ Orden guardado");
   };
 
@@ -104,6 +109,7 @@ const SidebarFiltros = ({ onFiltrar }) => {
       }
       const res = await api.get("/categorias");
       setCategorias(res.data);
+      onOrdenCategoriasChange?.(res.data.map((cat) => cat._id));
       mostrarToast("🔄 Orden original restaurado");
     } catch (error) {
       console.error("Error al restablecer orden:", error);

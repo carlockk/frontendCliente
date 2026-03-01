@@ -16,6 +16,7 @@ const ProductList = () => {
   const [favoritos, setFavoritos] = useState([]);
   const [productoVistaRapida, setProductoVistaRapida] = useState(null);
   const [imagenActiva, setImagenActiva] = useState(null);
+  const [ordenCategorias, setOrdenCategorias] = useState([]);
   const topRef = useRef();
 
   useEffect(() => {
@@ -48,6 +49,13 @@ const ProductList = () => {
       setFavoritos(guardados ? JSON.parse(guardados) : []);
     }
   }, [isLogged, user]);
+
+  useEffect(() => {
+    const usuarioKey = user?._id || "guest";
+    const key = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
+    const raw = localStorage.getItem(key);
+    setOrdenCategorias(raw ? JSON.parse(raw) : []);
+  }, [user, localId]);
 
   useEffect(() => {
     if (!imagenActiva) return;
@@ -117,27 +125,26 @@ const ProductList = () => {
     return acc;
   }, {});
 
-  const ordenCategorias = (() => {
-    const usuarioKey = user?._id || "guest";
-    const key = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
-  })();
+  const categoriaIdPorNombre = productos.reduce((acc, p) => {
+    const nombre = p.categoria?.nombre;
+    const id = p.categoria?._id;
+    if (nombre && id && !acc[nombre]) acc[nombre] = id;
+    return acc;
+  }, {});
 
   const categoriasOrdenadas = Object.keys(productosPorCategoria).sort((a, b) => {
-    const getIndex = (nombre) => {
-      const p = productos.find(p => p.categoria?.nombre === nombre);
-      const id = p?.categoria?._id;
-      return ordenCategorias.indexOf(id);
-    };
-    const idxA = getIndex(a);
-    const idxB = getIndex(b);
+    const idxA = ordenCategorias.indexOf(categoriaIdPorNombre[a]);
+    const idxB = ordenCategorias.indexOf(categoriaIdPorNombre[b]);
 
     if (idxA === -1 && idxB === -1) return a.localeCompare(b);
     if (idxA === -1) return 1;
     if (idxB === -1) return -1;
     return idxA - idxB;
   });
+
+  const handleOrdenCategoriasChange = useCallback((nuevoOrden) => {
+    setOrdenCategorias(Array.isArray(nuevoOrden) ? nuevoOrden : []);
+  }, []);
 
   return (
     <>
@@ -241,13 +248,19 @@ const ProductList = () => {
 
         {/* Sidebar escritorio alineado derecha sin margen */}
         <div className="hidden md:block w-[280px] pt-0.5 pb-6 pr-0 self-start md:sticky md:top-1">
-          <SidebarFiltros onFiltrar={aplicarFiltros} />
+          <SidebarFiltros
+            onFiltrar={aplicarFiltros}
+            onOrdenCategoriasChange={handleOrdenCategoriasChange}
+          />
         </div>
       </div>
 
       {/* Sidebar móvil */}
       <div className="md:hidden px-4">
-        <SidebarFiltros onFiltrar={aplicarFiltros} />
+        <SidebarFiltros
+          onFiltrar={aplicarFiltros}
+          onOrdenCategoriasChange={handleOrdenCategoriasChange}
+        />
       </div>
 
       {/* Vista rápida */}
