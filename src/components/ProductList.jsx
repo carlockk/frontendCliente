@@ -17,6 +17,7 @@ const ProductList = () => {
   const [productoVistaRapida, setProductoVistaRapida] = useState(null);
   const [imagenActiva, setImagenActiva] = useState(null);
   const [ordenCategorias, setOrdenCategorias] = useState([]);
+  const [categoriasMap, setCategoriasMap] = useState({});
   const topRef = useRef();
   const favoritosStorageKey = isLogged && user?._id
     ? `favoritos_${user._id}_${localId || "sinlocal"}`
@@ -62,30 +63,42 @@ const ProductList = () => {
     const usuarioKey = user?._id || "guest";
     const key = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
     const raw = localStorage.getItem(key);
-    if (!raw) {
-      setOrdenCategorias([]);
-      return;
-    }
-    try {
-      const ordenIds = JSON.parse(raw);
-      if (!Array.isArray(ordenIds) || ordenIds.length === 0) {
-        setOrdenCategorias([]);
+
+    api.get("/categorias").then((res) => {
+      const categorias = Array.isArray(res.data) ? res.data : [];
+      const parents = categorias.filter((cat) => !cat?.parent);
+      const map = categorias.reduce((acc, cat) => {
+        acc[cat._id] = cat;
+        return acc;
+      }, {});
+      setCategoriasMap(map);
+
+      if (!raw) {
+        setOrdenCategorias(parents.map((cat) => cat.nombre));
         return;
       }
-      api.get("/categorias").then((res) => {
-        const categorias = Array.isArray(res.data) ? res.data : [];
-        const porId = new Map(categorias.map((cat) => [cat._id, cat.nombre]));
+
+      try {
+        const ordenIds = JSON.parse(raw);
+        if (!Array.isArray(ordenIds) || ordenIds.length === 0) {
+          setOrdenCategorias(parents.map((cat) => cat.nombre));
+          return;
+        }
+        const porId = new Map(parents.map((cat) => [cat._id, cat.nombre]));
         const nombresOrdenados = ordenIds
           .map((id) => porId.get(id))
           .filter(Boolean);
-        const faltantes = categorias
+        const faltantes = parents
           .map((cat) => cat.nombre)
           .filter((nombre) => !nombresOrdenados.includes(nombre));
         setOrdenCategorias([...nombresOrdenados, ...faltantes]);
-      }).catch(() => setOrdenCategorias([]));
-    } catch {
+      } catch {
+        setOrdenCategorias(parents.map((cat) => cat.nombre));
+      }
+    }).catch(() => {
+      setCategoriasMap({});
       setOrdenCategorias([]);
-    }
+    });
   }, [user, localId]);
 
   useEffect(() => {
@@ -123,14 +136,44 @@ const ProductList = () => {
   };
 
   const abrirVistaRapida = (producto) => {
+    const getParentCategoryName = (prod) => {
+      const categoria = prod?.categoria;
+      if (!categoria) return "sin_categoria";
+      const categoriaId = typeof categoria === "object" ? categoria._id : categoria;
+      const parentIdRaw = typeof categoria === "object" ? categoria.parent : null;
+      const parentId =
+        parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
+
+      if (parentId && categoriasMap[parentId]?.nombre) {
+        return categoriasMap[parentId].nombre;
+      }
+      if (categoriaId && categoriasMap[categoriaId]?.nombre) {
+        return categoriasMap[categoriaId].nombre;
+      }
+      return categoria?.nombre || "sin_categoria";
+    };
+
+    const categoriaPadre = getParentCategoryName(producto);
     const relacionados = productos
-      .filter((p) => p.categoria?.nombre === producto.categoria?.nombre && p._id !== producto._id)
+      .filter((p) => getParentCategoryName(p) === categoriaPadre && p._id !== producto._id)
       .slice(0, 3);
     setProductoVistaRapida({ ...producto, relacionados });
   };
 
   const aplicarFiltros = useCallback(
     ({ precioMin, precioMax, busqueda, mostrarFavoritos, categoria }) => {
+      const getParentCategoryId = (prod) => {
+        const categoriaProd = prod?.categoria;
+        if (!categoriaProd) return null;
+        const categoriaId =
+          typeof categoriaProd === "object" ? categoriaProd._id : categoriaProd;
+        const parentIdRaw =
+          typeof categoriaProd === "object" ? categoriaProd.parent : null;
+        const parentId =
+          parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
+        return parentId || categoriaId || null;
+      };
+
       let resultado = [...productos];
       if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
       if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
@@ -138,7 +181,7 @@ const ProductList = () => {
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
-      if (categoria) resultado = resultado.filter((p) => p.categoria?.nombre === categoria);
+      if (categoria) resultado = resultado.filter((p) => getParentCategoryId(p) === categoria);
 
       setFiltrados(resultado);
     },
@@ -146,7 +189,15 @@ const ProductList = () => {
   );
 
   const productosPorCategoria = filtrados.reduce((acc, prod) => {
-    const cat = prod.categoria?.nombre || "sin_categoria";
+    const categoria = prod?.categoria;
+    const categoriaId = typeof categoria === "object" ? categoria?._id : categoria;
+    const parentIdRaw = typeof categoria === "object" ? categoria?.parent : null;
+    const parentId = parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
+    const categoriaPadreId = parentId || categoriaId || null;
+    const cat =
+      (categoriaPadreId && categoriasMap[categoriaPadreId]?.nombre) ||
+      categoria?.nombre ||
+      "sin_categoria";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
     return acc;

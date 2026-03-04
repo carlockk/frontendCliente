@@ -51,19 +51,21 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
       }
       try {
         const res = await api.get("/categorias");
+        const data = Array.isArray(res.data) ? res.data : [];
+        const categoriasPadre = data.filter((cat) => !cat?.parent);
         const ordenGuardado = localStorage.getItem(ordenStorageKey);
         if (ordenGuardado) {
           const ordenIds = JSON.parse(ordenGuardado);
           const reordenadas = ordenIds
-            .map(id => res.data.find(cat => cat._id === id))
+            .map((id) => categoriasPadre.find((cat) => cat._id === id))
             .filter(Boolean);
-          const faltantes = res.data.filter(cat => !ordenIds.includes(cat._id));
+          const faltantes = categoriasPadre.filter((cat) => !ordenIds.includes(cat._id));
           const categoriasOrdenadas = [...reordenadas, ...faltantes];
           setCategorias(categoriasOrdenadas);
           emitirOrdenCategorias(categoriasOrdenadas);
         } else {
-          setCategorias(res.data);
-          emitirOrdenCategorias(res.data);
+          setCategorias(categoriasPadre);
+          emitirOrdenCategorias(categoriasPadre);
         }
       } catch (error) {
         console.error("Error al cargar categorías:", error);
@@ -80,8 +82,8 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
     aplicarFiltros();
   }, [aplicarFiltros]);
 
-  const handleCategoria = (nombre) => {
-    setCategoriaSeleccionada((prev) => (prev === nombre ? null : nombre));
+  const handleCategoria = (categoriaId) => {
+    setCategoriaSeleccionada((prev) => (prev === categoriaId ? null : categoriaId));
   };
 
   const limpiarFiltros = () => {
@@ -114,8 +116,10 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
         return;
       }
       const res = await api.get("/categorias");
-      setCategorias(res.data);
-      emitirOrdenCategorias(res.data);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const categoriasPadre = data.filter((cat) => !cat?.parent);
+      setCategorias(categoriasPadre);
+      emitirOrdenCategorias(categoriasPadre);
       mostrarToast("🔄 Orden original restaurado");
     } catch (error) {
       console.error("Error al restablecer orden:", error);
@@ -216,11 +220,11 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
                           className={`cursor-pointer p-1 rounded ${
-                            categoriaSeleccionada === cat.nombre
+                            categoriaSeleccionada === cat._id
                               ? "text-blue-600 font-semibold"
                               : "text-gray-600 hover:text-blue-600"
                           } ${snapshot.isDragging ? "bg-gray-100" : ""}`}
-                          onClick={() => handleCategoria(cat.nombre)}
+                          onClick={() => handleCategoria(cat._id)}
                         >
                           {cat.nombre}
                         </li>
