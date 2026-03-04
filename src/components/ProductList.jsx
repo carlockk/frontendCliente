@@ -33,12 +33,24 @@ const ProductList = () => {
   };
 
   const getParentId = (categoria) => {
-    if (!categoria || typeof categoria !== "object") return null;
-    if (!categoria.parent) return null;
-    const raw =
-      typeof categoria.parent === "object" ? categoria.parent._id : categoria.parent;
-    if (raw === undefined || raw === null) return null;
-    return String(raw).trim();
+    if (!categoria) return null;
+
+    // Caso 1: el producto trae categoria poblada con parent embebido
+    if (typeof categoria === "object" && categoria.parent) {
+      const raw =
+        typeof categoria.parent === "object" ? categoria.parent._id : categoria.parent;
+      if (raw !== undefined && raw !== null) return String(raw).trim();
+    }
+
+    // Caso 2: el producto trae solo categoria como id.
+    // Usamos el mapa de categorias para resolver su parent.
+    const categoryId = getCategoryId(categoria);
+    const fromMap = categoryId ? categoriasMap[categoryId] : null;
+    if (!fromMap?.parent) return null;
+    const rawParent =
+      typeof fromMap.parent === "object" ? fromMap.parent._id : fromMap.parent;
+    if (rawParent === undefined || rawParent === null) return null;
+    return String(rawParent).trim();
   };
 
   const hasChildren = (categoryId) =>
