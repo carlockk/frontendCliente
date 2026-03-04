@@ -38,7 +38,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
 
   const emitirOrdenCategorias = (listaCategorias) => {
     onOrdenCategoriasChange?.(
-      Array.isArray(listaCategorias) ? listaCategorias.map((cat) => cat.nombre) : []
+      Array.isArray(listaCategorias) ? listaCategorias.map((cat) => String(cat._id)) : []
     );
   };
   const [categorias, setCategorias] = useState([]);

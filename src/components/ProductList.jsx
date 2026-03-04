@@ -24,6 +24,17 @@ const ProductList = () => {
     ? `favoritos_${user._id}_${localId || "sinlocal"}`
     : `favoritos_guest_${localId || "sinlocal"}`;
   const vistosStorageKey = `productos_vistos_${localId || "sinlocal"}`;
+  const hasCategoriasMap = Object.keys(categoriasMap).length > 0;
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+  const getLocalCategoryIdByName = (name) => {
+    const objetivo = normalizeText(name);
+    if (!objetivo) return null;
+    const match = Object.entries(categoriasMap).find(
+      ([, cat]) => normalizeText(cat?.nombre) === objetivo
+    );
+    return match ? String(match[0]) : null;
+  };
 
   const getCategoryId = (categoria) => {
     if (!categoria) return null;
@@ -65,13 +76,24 @@ const ProductList = () => {
     const categoria = producto?.categoria;
     const categoryId = getCategoryId(categoria);
     if (!categoryId) return null;
+    const categoriaLocalId =
+      hasCategoriasMap && !categoriasMap[categoryId]
+        ? getLocalCategoryIdByName(categoria?.nombre)
+        : categoryId;
+    if (!categoriaLocalId) return null;
 
-    if (hasChildren(categoryId)) {
-      return categoryId;
+    if (hasChildren(categoriaLocalId)) {
+      return categoriaLocalId;
     }
 
-    const parentId = getParentId(categoria);
-    return parentId || categoryId;
+    let parentId = getParentId(categoria);
+    if (parentId && hasCategoriasMap && !categoriasMap[parentId]) {
+      parentId =
+        getLocalCategoryIdByName(categoria?.parent?.nombre) ||
+        getLocalCategoryIdByName(categoriasMap[categoriaLocalId]?.parent?.nombre);
+    }
+    if (parentId && hasCategoriasMap && !categoriasMap[parentId]) return null;
+    return parentId || categoriaLocalId;
   };
 
   const getDisplayCategoryName = (producto) => {
@@ -151,26 +173,26 @@ const ProductList = () => {
       });
 
       if (!raw) {
-        setOrdenCategorias(parents.map((cat) => cat.nombre));
+        setOrdenCategorias(parents.map((cat) => String(cat._id)));
         return;
       }
 
       try {
         const ordenIds = JSON.parse(raw);
         if (!Array.isArray(ordenIds) || ordenIds.length === 0) {
-          setOrdenCategorias(parents.map((cat) => cat.nombre));
+          setOrdenCategorias(parents.map((cat) => String(cat._id)));
           return;
         }
-        const porId = new Map(parents.map((cat) => [cat._id, cat.nombre]));
-        const nombresOrdenados = ordenIds
-          .map((id) => porId.get(id))
-          .filter(Boolean);
+        const idsValidos = new Set(parents.map((cat) => String(cat._id)));
+        const idsOrdenados = ordenIds
+          .map((id) => String(id))
+          .filter((id) => idsValidos.has(id));
         const faltantes = parents
-          .map((cat) => cat.nombre)
-          .filter((nombre) => !nombresOrdenados.includes(nombre));
-        setOrdenCategorias([...nombresOrdenados, ...faltantes]);
+          .map((cat) => String(cat._id))
+          .filter((id) => !idsOrdenados.includes(id));
+        setOrdenCategorias([...idsOrdenados, ...faltantes]);
       } catch {
-        setOrdenCategorias(parents.map((cat) => cat.nombre));
+        setOrdenCategorias(parents.map((cat) => String(cat._id)));
       }
     }).catch(() => {
       setCategoriasMap({});
@@ -213,9 +235,9 @@ const ProductList = () => {
   };
 
     const abrirVistaRapida = (producto) => {
-    const categoriaPadre = getDisplayCategoryName(producto);
+    const categoriaPadre = getDisplayCategoryId(producto);
     const relacionados = productos
-      .filter((p) => getDisplayCategoryName(p) === categoriaPadre && p._id !== producto._id)
+      .filter((p) => getDisplayCategoryId(p) === categoriaPadre && p._id !== producto._id)
       .slice(0, 3);
     setProductoVistaRapida({ ...producto, relacionados });
   };
@@ -242,9 +264,14 @@ const ProductList = () => {
   );
 
   const productosPorCategoria = filtrados.reduce((acc, prod) => {
-    const cat = getDisplayCategoryName(prod);
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(prod);
+    const categoriaId = getDisplayCategoryId(prod) || "sin_categoria";
+    if (!acc[categoriaId]) {
+      acc[categoriaId] = {
+        nombre: getDisplayCategoryName(prod),
+        productos: [],
+      };
+    }
+    acc[categoriaId].productos.push(prod);
     return acc;
   }, {});
 
@@ -277,15 +304,15 @@ const ProductList = () => {
             </div>
           )}
 
-          {categoriasOrdenadas.map((categoria) => (
-            <div key={categoria} className="mb-10">
-              {categoria !== "sin_categoria" && (
+          {categoriasOrdenadas.map((categoriaId) => (
+            <div key={categoriaId} className="mb-10">
+              {categoriaId !== "sin_categoria" && (
                 <h2 className="text-xl font-semibold text-gray-600 mb-4 capitalize">
-                  ••• {categoria} •••
+                  ••• {productosPorCategoria[categoriaId].nombre} •••
                 </h2>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {productosPorCategoria[categoria].map((producto) => {
+                {productosPorCategoria[categoriaId].productos.map((producto) => {
                   const descripcionCorta =
                     producto.descripcion?.length > 70
                       ? producto.descripcion.slice(0, 70) + "..."
