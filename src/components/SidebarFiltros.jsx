@@ -25,6 +25,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
   const { localId } = useLocal();
   const usuarioKey = user?._id || "guest";
   const ordenStorageKey = `orden_categorias_${usuarioKey}_${localId || "sinlocal"}`;
+  const vistosStorageKey = `productos_vistos_${localId || "sinlocal"}`;
 
   const mostrarToast = (mensaje) => {
     setToast(mensaje);
@@ -71,9 +72,9 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
 
     fetchCategorias();
 
-    const vistos = localStorage.getItem("productos_vistos");
+    const vistos = localStorage.getItem(vistosStorageKey);
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
-  }, [user, localId, ordenStorageKey, onOrdenCategoriasChange]);
+  }, [user, localId, ordenStorageKey, onOrdenCategoriasChange, vistosStorageKey]);
 
   useEffect(() => {
     aplicarFiltros();

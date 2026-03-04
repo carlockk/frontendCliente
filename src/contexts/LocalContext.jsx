@@ -22,7 +22,13 @@ export const LocalProvider = ({ children }) => {
         setLocales(data);
         if (localId) {
           const found = data.find((l) => l._id === localId) || null;
-          setLocalInfo(found);
+          if (found) {
+            setLocalInfo(found);
+          } else {
+            localStorage.removeItem("local_id");
+            setLocalId("");
+            setLocalInfo(null);
+          }
         }
       } catch (err) {
         setErrorLocales("No se pudieron cargar los locales.");

@@ -1,10 +1,33 @@
-import { createContext, useReducer, useContext, useEffect } from "react";
+import { createContext, useReducer, useContext, useEffect, useRef } from "react";
+import { useLocal } from "../LocalContext";
 
 const CartContext = createContext();
 
 const initialState = {
   items: [],
   total: 0,
+};
+
+const getCartStorageKey = (localId) => `cart_${localId || "sinlocal"}`;
+
+const parseStoredCart = (rawValue) => {
+  if (!rawValue) return initialState;
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!parsed || typeof parsed !== "object") return initialState;
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    const total =
+      typeof parsed.total === "number"
+        ? parsed.total
+        : items.reduce(
+            (acc, item) =>
+              acc + (item?.precio ?? item?.price ?? 0) * (item?.quantity || 0),
+            0
+          );
+    return { items, total };
+  } catch {
+    return initialState;
+  }
 };
 
 const getAgregadosKey = (agregados = []) => {
@@ -101,21 +124,35 @@ const cartReducer = (state, action) => {
     case "CLEAR_CART":
       return { items: [], total: 0 };
 
+    case "HYDRATE_CART":
+      return action.payload || initialState;
+
     default:
       return state;
   }
 };
 
 export const CartProvider = ({ children }) => {
-  const storedCart = localStorage.getItem("cart");
+  const { localId } = useLocal();
+  const skipPersistRef = useRef(false);
   const [state, dispatch] = useReducer(
     cartReducer,
-    storedCart ? JSON.parse(storedCart) : initialState
+    parseStoredCart(localStorage.getItem(getCartStorageKey(localId)))
   );
 
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(state));
-  }, [state]);
+    skipPersistRef.current = true;
+    const nextState = parseStoredCart(localStorage.getItem(getCartStorageKey(localId)));
+    dispatch({ type: "HYDRATE_CART", payload: nextState });
+  }, [localId]);
+
+  useEffect(() => {
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return;
+    }
+    localStorage.setItem(getCartStorageKey(localId), JSON.stringify(state));
+  }, [state, localId]);
 
   return (
     <CartContext.Provider value={{ state, dispatch }}>

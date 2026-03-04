@@ -14,16 +14,23 @@ const Favoritos = () => {
   const [favoritosIds, setFavoritosIds] = useState([]);
   const [productoVistaRapida, setProductoVistaRapida] = useState(null);
   const [imagenActiva, setImagenActiva] = useState(null);
+  const favoritosStorageKey = isLogged && user?._id
+    ? `favoritos_${user._id}_${localId || "sinlocal"}`
+    : `favoritos_guest_${localId || "sinlocal"}`;
 
   useEffect(() => {
+    if (!localId) {
+      setFavoritosIds([]);
+      return;
+    }
     if (isLogged && user?._id) {
-      const raw = localStorage.getItem(`favoritos_${user._id}`);
+      const raw = localStorage.getItem(favoritosStorageKey);
       setFavoritosIds(raw ? JSON.parse(raw) : []);
     } else {
-      const raw = localStorage.getItem("favoritos_guest");
+      const raw = localStorage.getItem(favoritosStorageKey);
       setFavoritosIds(raw ? JSON.parse(raw) : []);
     }
-  }, [isLogged, user]);
+  }, [isLogged, user, localId, favoritosStorageKey]);
 
   useEffect(() => {
     if (!imagenActiva) return;
@@ -68,11 +75,7 @@ const Favoritos = () => {
 
   const quitarFavorito = (productoId) => {
     const nuevos = favoritosIds.filter((id) => id !== productoId);
-    if (isLogged && user?._id) {
-      localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
-    } else {
-      localStorage.setItem("favoritos_guest", JSON.stringify(nuevos));
-    }
+    localStorage.setItem(favoritosStorageKey, JSON.stringify(nuevos));
     setFavoritosIds(nuevos);
   };
 

@@ -8,25 +8,32 @@ export const AuthProvider = ({ children }) => {
 
   const mergeFavoritosGuest = (userId) => {
     if (!userId) return;
-    const guestRaw = localStorage.getItem("favoritos_guest");
-    if (!guestRaw) return;
-    let guest = [];
-    try {
-      guest = JSON.parse(guestRaw) || [];
-    } catch {
-      guest = [];
-    }
-    const userKey = `favoritos_${userId}`;
-    const userRaw = localStorage.getItem(userKey);
-    let userFav = [];
-    try {
-      userFav = userRaw ? JSON.parse(userRaw) : [];
-    } catch {
-      userFav = [];
-    }
-    const merged = Array.from(new Set([...(userFav || []), ...(guest || [])]));
-    localStorage.setItem(userKey, JSON.stringify(merged));
-    localStorage.removeItem("favoritos_guest");
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith("favoritos_guest_"));
+    keys.forEach((guestKey) => {
+      const localSuffix = guestKey.replace("favoritos_guest_", "") || "sinlocal";
+      const guestRaw = localStorage.getItem(guestKey);
+      if (!guestRaw) return;
+
+      let guest = [];
+      try {
+        guest = JSON.parse(guestRaw) || [];
+      } catch {
+        guest = [];
+      }
+
+      const userKey = `favoritos_${userId}_${localSuffix}`;
+      const userRaw = localStorage.getItem(userKey);
+      let userFav = [];
+      try {
+        userFav = userRaw ? JSON.parse(userRaw) : [];
+      } catch {
+        userFav = [];
+      }
+
+      const merged = Array.from(new Set([...(userFav || []), ...(guest || [])]));
+      localStorage.setItem(userKey, JSON.stringify(merged));
+      localStorage.removeItem(guestKey);
+    });
   };
 
   useEffect(() => {

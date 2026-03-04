@@ -18,6 +18,10 @@ const ProductList = () => {
   const [imagenActiva, setImagenActiva] = useState(null);
   const [ordenCategorias, setOrdenCategorias] = useState([]);
   const topRef = useRef();
+  const favoritosStorageKey = isLogged && user?._id
+    ? `favoritos_${user._id}_${localId || "sinlocal"}`
+    : `favoritos_guest_${localId || "sinlocal"}`;
+  const vistosStorageKey = `productos_vistos_${localId || "sinlocal"}`;
 
   useEffect(() => {
     if (!localId) {
@@ -41,14 +45,18 @@ const ProductList = () => {
   }, [localId]);
 
   useEffect(() => {
+    if (!localId) {
+      setFavoritos([]);
+      return;
+    }
     if (isLogged && user?._id) {
-      const guardados = localStorage.getItem(`favoritos_${user._id}`);
+      const guardados = localStorage.getItem(favoritosStorageKey);
       setFavoritos(guardados ? JSON.parse(guardados) : []);
     } else {
-      const guardados = localStorage.getItem("favoritos_guest");
+      const guardados = localStorage.getItem(favoritosStorageKey);
       setFavoritos(guardados ? JSON.parse(guardados) : []);
     }
-  }, [isLogged, user]);
+  }, [isLogged, user, localId, favoritosStorageKey]);
 
   useEffect(() => {
     const usuarioKey = user?._id || "guest";
@@ -107,15 +115,11 @@ const ProductList = () => {
       : [...favoritos, producto._id];
 
     setFavoritos(nuevos);
-    if (isLogged && user?._id) {
-      localStorage.setItem(`favoritos_${user._id}`, JSON.stringify(nuevos));
-    } else {
-      localStorage.setItem("favoritos_guest", JSON.stringify(nuevos));
-    }
+    localStorage.setItem(favoritosStorageKey, JSON.stringify(nuevos));
 
-    let vistos = JSON.parse(localStorage.getItem("productos_vistos")) || [];
+    let vistos = JSON.parse(localStorage.getItem(vistosStorageKey)) || [];
     vistos = [producto, ...vistos.filter((p) => p._id !== producto._id)];
-    localStorage.setItem("productos_vistos", JSON.stringify(vistos.slice(0, 5)));
+    localStorage.setItem(vistosStorageKey, JSON.stringify(vistos.slice(0, 5)));
   };
 
   const abrirVistaRapida = (producto) => {
