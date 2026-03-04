@@ -514,7 +514,8 @@ const Checkout = () => {
       navigate(`/compras/detalle/${guestId}`);
     } catch (err) {
       console.error("Error al guardar venta:", err);
-      alert("No se pudo procesar el pedido.");
+      const backendMsg = err?.response?.data?.msg || err?.response?.data?.error || "";
+      alert(backendMsg || "No se pudo procesar el pedido.");
     } finally {
       setLoading(false);
     }
@@ -555,7 +556,9 @@ const Checkout = () => {
       });
     } catch (error) {
       console.error("Error al crear sesión de pago:", error);
-      alert("No se pudo iniciar el pago.");
+      const backendMsg =
+        error?.response?.data?.error || error?.response?.data?.msg || "";
+      alert(backendMsg || "No se pudo iniciar el pago.");
     } finally {
       setLoading(false);
     }
