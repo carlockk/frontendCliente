@@ -15,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const envLocalId = import.meta.env.VITE_LOCAL_ID;
   const storedLocalId = localStorage.getItem("local_id");
-  const localId = storedLocalId || envLocalId;
+  const localId = String(storedLocalId || envLocalId || "").trim();
 
   if (localId) {
     config.headers["x-local-id"] = localId;

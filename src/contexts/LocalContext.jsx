@@ -41,7 +41,8 @@ export const LocalProvider = ({ children }) => {
   }, [localId]);
 
   const selectLocal = (local) => {
-    const id = typeof local === "string" ? local : local?._id || "";
+    const rawId = typeof local === "string" ? local : local?._id || "";
+    const id = String(rawId || "").trim();
     if (id) {
       localStorage.setItem("local_id", id);
     } else {

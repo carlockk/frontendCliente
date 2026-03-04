@@ -7,8 +7,9 @@ import { useLocal } from "../contexts/LocalContext";
 const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
   const getId = (value) => {
     if (!value) return null;
-    if (typeof value === "object") return value._id || null;
-    return value;
+    const raw = typeof value === "object" ? value._id : value;
+    if (raw === undefined || raw === null) return null;
+    return String(raw).trim();
   };
 
   const buildSidebarCategories = (categorias = []) => {
@@ -107,6 +108,15 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
     const vistos = localStorage.getItem(vistosStorageKey);
     setVistosRecientes(vistos ? JSON.parse(vistos).slice(0, 2) : []);
   }, [user, localId, ordenStorageKey, onOrdenCategoriasChange, vistosStorageKey]);
+
+  useEffect(() => {
+    // Evita filtros "fantasma" al cambiar de local (ids de categorías no compatibles entre locales)
+    setCategoriaSeleccionada(null);
+    setBusqueda("");
+    setPrecioMin("");
+    setPrecioMax("");
+    setMostrarFavoritos(false);
+  }, [localId]);
 
   useEffect(() => {
     aplicarFiltros();

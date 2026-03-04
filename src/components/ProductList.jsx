@@ -27,15 +27,18 @@ const ProductList = () => {
 
   const getCategoryId = (categoria) => {
     if (!categoria) return null;
-    if (typeof categoria === "object") return categoria._id || null;
-    return categoria;
+    const raw = typeof categoria === "object" ? categoria._id : categoria;
+    if (raw === undefined || raw === null) return null;
+    return String(raw).trim();
   };
 
   const getParentId = (categoria) => {
     if (!categoria || typeof categoria !== "object") return null;
     if (!categoria.parent) return null;
-    if (typeof categoria.parent === "object") return categoria.parent._id || null;
-    return categoria.parent;
+    const raw =
+      typeof categoria.parent === "object" ? categoria.parent._id : categoria.parent;
+    if (raw === undefined || raw === null) return null;
+    return String(raw).trim();
   };
 
   const hasChildren = (categoryId) =>
@@ -214,7 +217,12 @@ const ProductList = () => {
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
-      if (categoria) resultado = resultado.filter((p) => getDisplayCategoryId(p) === categoria);
+      if (categoria) {
+        const categoriaNormalizada = String(categoria).trim();
+        resultado = resultado.filter(
+          (p) => getDisplayCategoryId(p) === categoriaNormalizada
+        );
+      }
 
       setFiltrados(resultado);
     },
