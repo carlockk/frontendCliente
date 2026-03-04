@@ -18,11 +18,54 @@ const ProductList = () => {
   const [imagenActiva, setImagenActiva] = useState(null);
   const [ordenCategorias, setOrdenCategorias] = useState([]);
   const [categoriasMap, setCategoriasMap] = useState({});
+  const [childrenByParent, setChildrenByParent] = useState({});
   const topRef = useRef();
   const favoritosStorageKey = isLogged && user?._id
     ? `favoritos_${user._id}_${localId || "sinlocal"}`
     : `favoritos_guest_${localId || "sinlocal"}`;
   const vistosStorageKey = `productos_vistos_${localId || "sinlocal"}`;
+
+  const getCategoryId = (categoria) => {
+    if (!categoria) return null;
+    if (typeof categoria === "object") return categoria._id || null;
+    return categoria;
+  };
+
+  const getParentId = (categoria) => {
+    if (!categoria || typeof categoria !== "object") return null;
+    if (!categoria.parent) return null;
+    if (typeof categoria.parent === "object") return categoria.parent._id || null;
+    return categoria.parent;
+  };
+
+  const hasChildren = (categoryId) =>
+    !!categoryId &&
+    Array.isArray(childrenByParent[categoryId]) &&
+    childrenByParent[categoryId].length > 0;
+
+  const hasLeafChild = (categoryId) =>
+    (childrenByParent[categoryId] || []).some((childId) => !hasChildren(childId));
+
+  const getDisplayCategoryId = (producto) => {
+    const categoria = producto?.categoria;
+    const categoryId = getCategoryId(categoria);
+    if (!categoryId) return null;
+
+    if (hasChildren(categoryId)) {
+      return categoryId;
+    }
+
+    const parentId = getParentId(categoria);
+    return parentId || categoryId;
+  };
+
+  const getDisplayCategoryName = (producto) => {
+    const displayId = getDisplayCategoryId(producto);
+    if (displayId && categoriasMap[displayId]?.nombre) {
+      return categoriasMap[displayId].nombre;
+    }
+    return producto?.categoria?.nombre || "sin_categoria";
+  };
 
   useEffect(() => {
     if (!localId) {
@@ -66,12 +109,31 @@ const ProductList = () => {
 
     api.get("/categorias").then((res) => {
       const categorias = Array.isArray(res.data) ? res.data : [];
-      const parents = categorias.filter((cat) => !cat?.parent);
       const map = categorias.reduce((acc, cat) => {
         acc[cat._id] = cat;
         return acc;
       }, {});
+      const byParent = categorias.reduce((acc, cat) => {
+        const parentId = getParentId(cat);
+        if (!parentId) return acc;
+        if (!acc[parentId]) acc[parentId] = [];
+        acc[parentId].push(cat._id);
+        return acc;
+      }, {});
       setCategoriasMap(map);
+      setChildrenByParent(byParent);
+
+      const hasChildrenFromMap = (catId) =>
+        Array.isArray(byParent[catId]) && byParent[catId].length > 0;
+      const hasLeafChildFromMap = (catId) =>
+        (byParent[catId] || []).some((childId) => !hasChildrenFromMap(childId));
+      const parents = categorias.filter((cat) => {
+        const catId = cat?._id;
+        const parentId = getParentId(cat);
+        if (!catId) return false;
+        if (hasChildrenFromMap(catId)) return hasLeafChildFromMap(catId);
+        return !parentId;
+      });
 
       if (!raw) {
         setOrdenCategorias(parents.map((cat) => cat.nombre));
@@ -135,45 +197,16 @@ const ProductList = () => {
     localStorage.setItem(vistosStorageKey, JSON.stringify(vistos.slice(0, 5)));
   };
 
-  const abrirVistaRapida = (producto) => {
-    const getParentCategoryName = (prod) => {
-      const categoria = prod?.categoria;
-      if (!categoria) return "sin_categoria";
-      const categoriaId = typeof categoria === "object" ? categoria._id : categoria;
-      const parentIdRaw = typeof categoria === "object" ? categoria.parent : null;
-      const parentId =
-        parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
-
-      if (parentId && categoriasMap[parentId]?.nombre) {
-        return categoriasMap[parentId].nombre;
-      }
-      if (categoriaId && categoriasMap[categoriaId]?.nombre) {
-        return categoriasMap[categoriaId].nombre;
-      }
-      return categoria?.nombre || "sin_categoria";
-    };
-
-    const categoriaPadre = getParentCategoryName(producto);
+    const abrirVistaRapida = (producto) => {
+    const categoriaPadre = getDisplayCategoryName(producto);
     const relacionados = productos
-      .filter((p) => getParentCategoryName(p) === categoriaPadre && p._id !== producto._id)
+      .filter((p) => getDisplayCategoryName(p) === categoriaPadre && p._id !== producto._id)
       .slice(0, 3);
     setProductoVistaRapida({ ...producto, relacionados });
   };
 
   const aplicarFiltros = useCallback(
     ({ precioMin, precioMax, busqueda, mostrarFavoritos, categoria }) => {
-      const getParentCategoryId = (prod) => {
-        const categoriaProd = prod?.categoria;
-        if (!categoriaProd) return null;
-        const categoriaId =
-          typeof categoriaProd === "object" ? categoriaProd._id : categoriaProd;
-        const parentIdRaw =
-          typeof categoriaProd === "object" ? categoriaProd.parent : null;
-        const parentId =
-          parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
-        return parentId || categoriaId || null;
-      };
-
       let resultado = [...productos];
       if (precioMin) resultado = resultado.filter((p) => p.precio >= parseInt(precioMin));
       if (precioMax) resultado = resultado.filter((p) => p.precio <= parseInt(precioMax));
@@ -181,23 +214,15 @@ const ProductList = () => {
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       if (mostrarFavoritos) resultado = resultado.filter((p) => favoritos.includes(p._id));
-      if (categoria) resultado = resultado.filter((p) => getParentCategoryId(p) === categoria);
+      if (categoria) resultado = resultado.filter((p) => getDisplayCategoryId(p) === categoria);
 
       setFiltrados(resultado);
     },
-    [productos, favoritos]
+    [productos, favoritos, categoriasMap, childrenByParent]
   );
 
   const productosPorCategoria = filtrados.reduce((acc, prod) => {
-    const categoria = prod?.categoria;
-    const categoriaId = typeof categoria === "object" ? categoria?._id : categoria;
-    const parentIdRaw = typeof categoria === "object" ? categoria?.parent : null;
-    const parentId = parentIdRaw && typeof parentIdRaw === "object" ? parentIdRaw._id : parentIdRaw;
-    const categoriaPadreId = parentId || categoriaId || null;
-    const cat =
-      (categoriaPadreId && categoriasMap[categoriaPadreId]?.nombre) ||
-      categoria?.nombre ||
-      "sin_categoria";
+    const cat = getDisplayCategoryName(prod);
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(prod);
     return acc;

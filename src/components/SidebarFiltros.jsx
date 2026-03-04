@@ -5,6 +5,36 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLocal } from "../contexts/LocalContext";
 
 const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
+  const getId = (value) => {
+    if (!value) return null;
+    if (typeof value === "object") return value._id || null;
+    return value;
+  };
+
+  const buildSidebarCategories = (categorias = []) => {
+    const childrenByParent = categorias.reduce((acc, cat) => {
+      const parentId = getId(cat?.parent);
+      if (!parentId) return acc;
+      if (!acc[parentId]) acc[parentId] = [];
+      acc[parentId].push(cat._id);
+      return acc;
+    }, {});
+
+    const hasChildren = (catId) =>
+      Array.isArray(childrenByParent[catId]) && childrenByParent[catId].length > 0;
+
+    const hasLeafChild = (catId) =>
+      (childrenByParent[catId] || []).some((childId) => !hasChildren(childId));
+
+    return categorias.filter((cat) => {
+      const catId = cat?._id;
+      const parentId = getId(cat?.parent);
+      if (!catId) return false;
+      if (hasChildren(catId)) return hasLeafChild(catId);
+      return !parentId;
+    });
+  };
+
   const emitirOrdenCategorias = (listaCategorias) => {
     onOrdenCategoriasChange?.(
       Array.isArray(listaCategorias) ? listaCategorias.map((cat) => cat.nombre) : []
@@ -52,7 +82,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
       try {
         const res = await api.get("/categorias");
         const data = Array.isArray(res.data) ? res.data : [];
-        const categoriasPadre = data.filter((cat) => !cat?.parent);
+        const categoriasPadre = buildSidebarCategories(data);
         const ordenGuardado = localStorage.getItem(ordenStorageKey);
         if (ordenGuardado) {
           const ordenIds = JSON.parse(ordenGuardado);
@@ -117,7 +147,7 @@ const SidebarFiltros = ({ onFiltrar, onOrdenCategoriasChange }) => {
       }
       const res = await api.get("/categorias");
       const data = Array.isArray(res.data) ? res.data : [];
-      const categoriasPadre = data.filter((cat) => !cat?.parent);
+      const categoriasPadre = buildSidebarCategories(data);
       setCategorias(categoriasPadre);
       emitirOrdenCategorias(categoriasPadre);
       mostrarToast("🔄 Orden original restaurado");
