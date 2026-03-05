@@ -7,6 +7,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
   const [cantidad, setCantidad] = useState(1);
   const [varianteSeleccionadaKey, setVarianteSeleccionadaKey] = useState("");
   const [agregadosSeleccionados, setAgregadosSeleccionados] = useState([]);
+  const [errorAgregados, setErrorAgregados] = useState("");
   const { dispatch } = useCart();
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
       setCantidad(1); // Reiniciar cantidad cada vez que abre
       setVarianteSeleccionadaKey("");
       setAgregadosSeleccionados([]);
+      setErrorAgregados("");
       const timeout = setTimeout(() => setShowAnimation(true), 10);
       return () => clearTimeout(timeout);
     } else {
@@ -27,6 +29,10 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
     window.addEventListener("keydown", escHandler);
     return () => window.removeEventListener("keydown", escHandler);
   }, [toggle]);
+
+  useEffect(() => {
+    if (errorAgregados) setErrorAgregados("");
+  }, [agregadosSeleccionados]);
 
   if (!isOpen || !producto) return null;
   const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
@@ -73,11 +79,34 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
     });
   };
 
+  const validarGruposObligatorios = () => {
+    const faltantes = gruposAgregados
+      .filter((grupo) => grupo?.obligatorio)
+      .filter((grupo) => {
+        const idsGrupo = (grupo?.opciones || [])
+          .map((agg) => String(agg?._id || agg?.agregadoId || agg?.nombre || ""))
+          .filter(Boolean);
+        return !agregadosSeleccionados.some((sel) =>
+          idsGrupo.includes(String(sel?.agregadoId || sel?.nombre || ""))
+        );
+      })
+      .map((grupo) => grupo?.titulo || "Agregados");
+
+    if (faltantes.length > 0) {
+      setErrorAgregados(`Debes elegir una opcion en: ${faltantes.join(", ")}`);
+      return false;
+    }
+
+    setErrorAgregados("");
+    return true;
+  };
+
   const agregarAlCarrito = () => {
     if (tieneVariantes && !varianteSeleccionada) {
       alert("Debes elegir una variación.");
       return;
     }
+    if (!validarGruposObligatorios()) return;
 
     const precioBase =
       typeof varianteSeleccionada?.precio === "number"
@@ -187,13 +216,15 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
             )}
           </div>
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-1">Agregados opcionales</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-1">Agregados</h3>
             {gruposAgregados.length > 0 ? (
               <div className="space-y-3">
                 {gruposAgregados.map((grupo, gIdx) => (
                   <div key={grupo.key || `grupo-${gIdx}`} className="rounded border border-gray-100 p-2">
                     <p className="text-xs font-semibold text-gray-700 mb-2">
-                      {grupo.titulo} {grupo.modoSeleccion === "unico" ? "(elige uno)" : "(elige uno o varios)"}
+                      {grupo.titulo}{" "}
+                      {grupo.modoSeleccion === "unico" ? "(elige uno)" : "(elige uno o varios)"}{" "}
+                      {grupo.obligatorio ? "- obligatorio" : "- opcional"}
                     </p>
                     <ul className="space-y-2">
                       {grupo.opciones.map((agg, idx) => {
@@ -233,6 +264,9 @@ export default function ProductQuickView({ isOpen, toggle, producto, onRemoveFav
             ) : (
               <p className="text-xs text-gray-400">Este producto no tiene agregados configurados</p>
             )}
+            {errorAgregados ? (
+              <p className="text-xs text-red-600 mt-2">{errorAgregados}</p>
+            ) : null}
           </div>
           {onRemoveFavorite && (
             <button

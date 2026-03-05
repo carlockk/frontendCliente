@@ -13,6 +13,14 @@ const normalizeMode = (raw) => {
   return "multiple";
 };
 
+const normalizeRequired = (raw) => {
+  if (typeof raw === "boolean") return raw;
+  const value = toStringSafe(raw).toLowerCase();
+  if (["true", "1", "si", "sí", "yes"].includes(value)) return true;
+  if (["false", "0", "no"].includes(value)) return false;
+  return false;
+};
+
 const getGroupMode = (group) =>
   normalizeMode(
     group?.modoSeleccion ||
@@ -34,6 +42,7 @@ const getAddonGroupRef = (addon) => {
     key: toStringSafe(group?._id || group?.id || group?.grupoId || addon?.grupoId || "__sin_grupo__"),
     title: getGroupTitle(group, "Agregados"),
     mode: getGroupMode(group),
+    required: normalizeRequired(group?.obligatorio ?? addon?.obligatorio),
   };
 };
 
@@ -46,6 +55,7 @@ const getAddonGroupRefs = (addon) => {
       key: toStringSafe(group?._id || group?.id || group?.grupoId || "__sin_grupo__"),
       title: getGroupTitle(group, "Agregados"),
       mode: getGroupMode(group),
+      required: normalizeRequired(group?.obligatorio),
     }))
     .filter((g) => g.key);
 
@@ -82,6 +92,7 @@ const pushGroupItem = (groupsByKey, groupMeta, item) => {
       key,
       titulo: groupMeta?.title || "Agregados",
       modoSeleccion: normalizeMode(groupMeta?.mode),
+      obligatorio: normalizeRequired(groupMeta?.required),
       opciones: [],
     });
   }
