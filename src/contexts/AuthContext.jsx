@@ -46,6 +46,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
+    const prevAuthHeader = api.defaults.headers.common["Authorization"];
+    let authUpdated = false;
+    delete api.defaults.headers.common["Authorization"];
     try {
       const res = await api.post("/clientes/login", {
         email,
@@ -58,16 +61,34 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      authUpdated = true;
       mergeFavoritosGuest(userData._id);
 
       return { success: true };
     } catch (err) {
       console.error("Login error:", err.response?.data || err.message);
-      return { success: false, message: "Correo o contraseña incorrectos" };
+      return {
+        success: false,
+        message:
+          err?.response?.data?.msg ||
+          err?.response?.data?.error ||
+          "Correo o contraseña incorrectos",
+      };
+    } finally {
+      if (!authUpdated) {
+        if (prevAuthHeader) {
+          api.defaults.headers.common["Authorization"] = prevAuthHeader;
+        } else {
+          delete api.defaults.headers.common["Authorization"];
+        }
+      }
     }
   };
 
   const register = async (nuevoUsuario) => {
+    const prevAuthHeader = api.defaults.headers.common["Authorization"];
+    let authUpdated = false;
+    delete api.defaults.headers.common["Authorization"];
     try {
       const res = await api.post("/clientes/register", nuevoUsuario);
       const { cliente, token } = res.data;
@@ -76,13 +97,28 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      authUpdated = true;
       mergeFavoritosGuest(userData._id);
 
       alert("Registro exitoso");
       return { success: true };
     } catch (err) {
       console.error("Registro error:", err.response?.data || err.message);
-      return { success: false, message: "Error al registrarse" };
+      return {
+        success: false,
+        message:
+          err?.response?.data?.msg ||
+          err?.response?.data?.error ||
+          "Error al registrarse",
+      };
+    } finally {
+      if (!authUpdated) {
+        if (prevAuthHeader) {
+          api.defaults.headers.common["Authorization"] = prevAuthHeader;
+        } else {
+          delete api.defaults.headers.common["Authorization"];
+        }
+      }
     }
   };
 
