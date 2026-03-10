@@ -9,10 +9,47 @@ import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
+const getDeliveryOptions = (localInfo) => {
+  const servicios = localInfo?.servicios || {};
+  return [
+    {
+      value: "tienda",
+      label: "Para consumir en tienda",
+      enabled: servicios.tienda !== false,
+    },
+    {
+      value: "retiro",
+      label: "Retiro en tienda",
+      enabled: servicios.retiro !== false,
+    },
+    {
+      value: "delivery",
+      label: "Delivery a domicilio",
+      enabled: servicios.delivery !== false,
+    },
+  ].filter((option) => option.enabled);
+};
+
+const getPaymentOptions = (localInfo) => {
+  const pagos = localInfo?.pagos_web || {};
+  return [
+    {
+      value: "online",
+      label: "Tarjeta (Webpay)",
+      enabled: pagos.tarjeta !== false,
+    },
+    {
+      value: "efectivo",
+      label: "Efectivo",
+      enabled: pagos.efectivo !== false,
+    },
+  ].filter((option) => option.enabled);
+};
+
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const { user } = useAuth();
-  const { localId, locales } = useLocal();
+  const { localId, locales, localInfo } = useLocal();
   const { hasSchedule, isOpenNow, closedMessage, todayScheduleText, isPickupTimeAllowed } =
     useWebSchedule();
   const navigate = useNavigate();
@@ -30,6 +67,11 @@ const Checkout = () => {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoCoords, setGeoCoords] = useState(null);
   const [mostrarMapa, setMostrarMapa] = useState(false);
+
+  const availableDeliveryOptions = getDeliveryOptions(localInfo);
+  const availablePaymentOptions = getPaymentOptions(localInfo);
+  const hasDeliveryOptions = availableDeliveryOptions.length > 0;
+  const hasPaymentOptions = availablePaymentOptions.length > 0;
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -139,6 +181,31 @@ const Checkout = () => {
       setHoraRetiro("");
     }
   }, [tipoPedido]);
+
+  useEffect(() => {
+    if (!hasDeliveryOptions) {
+      if (tipoPedido) setTipoPedido("");
+      return;
+    }
+
+    const isCurrentEnabled = availableDeliveryOptions.some((option) => option.value === tipoPedido);
+    if (!isCurrentEnabled) {
+      setTipoPedido(availableDeliveryOptions[0].value);
+    }
+  }, [availableDeliveryOptions, hasDeliveryOptions, tipoPedido]);
+
+  useEffect(() => {
+    if (!hasPaymentOptions) {
+      if (metodoPago) setMetodoPago("");
+      return;
+    }
+
+    const isCurrentEnabled = availablePaymentOptions.some((option) => option.value === metodoPago);
+    if (!isCurrentEnabled) {
+      setMetodoPago("");
+      setTipoPagoEfectivo("");
+    }
+  }, [availablePaymentOptions, hasPaymentOptions, metodoPago]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -397,6 +464,16 @@ const Checkout = () => {
       return false;
     }
 
+    if (!hasDeliveryOptions) {
+      alert("Este local no tiene tipos de pedido habilitados.");
+      return false;
+    }
+
+    if (!hasPaymentOptions) {
+      alert("Este local no tiene métodos de pago web habilitados.");
+      return false;
+    }
+
     if (tipoPedido === "delivery" && !cliente.direccion) {
       alert("Debes ingresar una dirección para delivery.");
       return false;
@@ -617,15 +694,28 @@ const Checkout = () => {
           <div className="space-y-4">
             <div>
               <label className="font-medium">Tipo de pedido:</label>
-              <select
-                value={tipoPedido}
-                onChange={(e) => setTipoPedido(e.target.value)}
-                className="block w-full border rounded px-3 py-2 mt-1"
-              >
-                <option value="tienda">Para consumir en tienda</option>
-                <option value="retiro">Retiro en tienda</option>
-                <option value="delivery">Delivery a domicilio</option>
-              </select>
+              {availableDeliveryOptions.length === 1 ? (
+                <div className="block w-full border rounded px-3 py-2 mt-1 bg-gray-50 text-gray-700">
+                  {availableDeliveryOptions[0].label}
+                </div>
+              ) : (
+                <select
+                  value={tipoPedido}
+                  onChange={(e) => setTipoPedido(e.target.value)}
+                  className="block w-full border rounded px-3 py-2 mt-1"
+                >
+                  {availableDeliveryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!hasDeliveryOptions && (
+                <p className="text-xs text-red-600 mt-1">
+                  Este local no tiene tipos de pedido habilitados.
+                </p>
+              )}
             </div>
 
             <input type="text" name="nombre" placeholder="Nombre completo" className="w-full border rounded px-3 py-2" onChange={handleInput} />
@@ -737,15 +827,29 @@ const Checkout = () => {
 
             <div>
               <label className="block font-medium mb-1">Método de pago:</label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="">-- Selecciona --</option>
-                <option value="online">Tarjeta (Webpay)</option>
-                <option value="efectivo">Efectivo</option>
-              </select>
+              {availablePaymentOptions.length === 1 ? (
+                <div className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-700">
+                  {availablePaymentOptions[0].label}
+                </div>
+              ) : (
+                <select
+                  value={metodoPago}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">-- Selecciona --</option>
+                  {availablePaymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {!hasPaymentOptions && (
+                <p className="text-xs text-red-600 mt-1">
+                  Este local no tiene métodos de pago web habilitados.
+                </p>
+              )}
             </div>
 
             {metodoPago === "efectivo" && (
