@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocal } from "../contexts/LocalContext";
 import { useWebSchedule } from "../contexts/WebScheduleContext";
 import { formatOrderAddon, normalizeOrderAddons } from "../utils/orderAddons";
+import { normalizeCoordinate, resolveMatchingZone } from "../utils/deliveryZones";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
@@ -67,6 +68,7 @@ const Checkout = () => {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoCoords, setGeoCoords] = useState(null);
   const [mostrarMapa, setMostrarMapa] = useState(false);
+  const [zoneWarning, setZoneWarning] = useState("");
 
   const availableDeliveryOptions = getDeliveryOptions(localInfo);
   const availablePaymentOptions = getPaymentOptions(localInfo);
@@ -97,12 +99,17 @@ const Checkout = () => {
   const handleDireccionInput = (e) => {
     const value = e.target.value;
     setCliente((prev) => ({ ...prev, direccion: value }));
+    setZoneWarning("");
   };
   const limpiarSugerenciasDireccion = () => {
     setSugerenciasDireccion([]);
     setBuscandoDireccion(false);
   };
   const actualizarDireccionDesdeCoords = (lat, lng, opts = {}) => {
+    const nextCoords = normalizeCoordinate({ lat, lng });
+    if (nextCoords) {
+      setGeoCoords(nextCoords);
+    }
     if (!geocoderRef.current) {
       setCliente((prev) => ({
         ...prev,
@@ -118,15 +125,18 @@ const Checkout = () => {
           : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
       setCliente((prev) => ({ ...prev, direccion }));
-      setGeoCoords({ lat, lng });
       setBuscandoDireccion(true);
-      obtenerPrediccionesDireccion(direccion, { coords: { lat, lng } });
+      obtenerPrediccionesDireccion(direccion, { coords: nextCoords || { lat, lng } });
 
       if (opts?.centerMap && mapRef.current) {
         mapRef.current.setCenter({ lat, lng });
       }
     });
   };
+
+  const hasConfiguredDeliveryZones = Array.isArray(localInfo?.delivery_zones)
+    && localInfo.delivery_zones.some((zone) => zone?.active !== false && Array.isArray(zone?.polygon) && zone.polygon.length >= 3);
+  const matchingZone = tipoPedido === "delivery" ? resolveMatchingZone(localInfo?.delivery_zones || [], geoCoords) : null;
   const obtenerPrediccionesDireccion = (query, options = {}) => {
     if (!autocompleteServiceRef.current || !window.google?.maps?.places) {
       return;
@@ -345,16 +355,25 @@ const Checkout = () => {
     placesServiceRef.current.getDetails(
       {
         placeId,
-        fields: ["formatted_address", "name"],
+        fields: ["formatted_address", "name", "geometry"],
         sessionToken: sessionTokenRef.current || undefined,
       },
       (place, status) => {
+        const placeCoords = normalizeCoordinate({
+          lat: place?.geometry?.location?.lat?.(),
+          lng: place?.geometry?.location?.lng?.(),
+        });
         const finalAddress =
           status === window.google.maps.places.PlacesServiceStatus.OK
             ? place?.formatted_address || place?.name || sugerencia.texto
             : sugerencia.texto;
 
         setCliente((prev) => ({ ...prev, direccion: finalAddress || prev.direccion }));
+        if (placeCoords) {
+          setGeoCoords(placeCoords);
+          markerRef.current?.setPosition(placeCoords);
+          mapRef.current?.setCenter(placeCoords);
+        }
         limpiarSugerenciasDireccion();
         if (window.google?.maps?.places?.AutocompleteSessionToken) {
           sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
@@ -402,6 +421,8 @@ const Checkout = () => {
               setCliente((prev) => ({ ...prev, direccion }));
               setBuscandoDireccion(true);
               obtenerPrediccionesDireccion(direccion, { coords: { lat, lng } });
+              markerRef.current?.setPosition({ lat, lng });
+              mapRef.current?.setCenter({ lat, lng });
             } else {
               setBuscandoDireccion(true);
               obtenerPrediccionesDireccion(cliente.direccion || " ", { coords: { lat, lng } });
@@ -479,6 +500,16 @@ const Checkout = () => {
       return false;
     }
 
+    if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && !geoCoords) {
+      alert("Debes confirmar la ubicacion en el mapa o elegir una sugerencia valida.");
+      return false;
+    }
+
+    if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && geoCoords && !matchingZone) {
+      alert("La ubicacion esta fuera de la zona de reparto de este local.");
+      return false;
+    }
+
     if (hasSchedule && !isOpenNow) {
       alert(closedMessage || "El sitio esta cerrado por horario de atencion.");
       return false;
@@ -514,12 +545,59 @@ const Checkout = () => {
     return true;
   };
 
+  const asegurarCoordenadasDelivery = async () => {
+    if (tipoPedido !== "delivery") return null;
+    if (geoCoords) return geoCoords;
+    if (!cliente.direccion?.trim()) return null;
+    if (!geocoderRef.current) return null;
+
+    return new Promise((resolve) => {
+      geocoderRef.current.geocode({ address: cliente.direccion.trim() }, (results, status) => {
+        if (status !== "OK" || !Array.isArray(results) || !results[0]?.geometry?.location) {
+          resolve(null);
+          return;
+        }
+
+        const coords = normalizeCoordinate({
+          lat: results[0].geometry.location.lat(),
+          lng: results[0].geometry.location.lng(),
+        });
+
+        if (coords) {
+          setGeoCoords(coords);
+          markerRef.current?.setPosition(coords);
+          mapRef.current?.setCenter(coords);
+        }
+
+        resolve(coords);
+      });
+    });
+  };
+
   const crearOrden = async () => {
     if (!validarFormulario()) return;
 
     setLoading(true);
 
     try {
+      const confirmedCoords = await asegurarCoordenadasDelivery();
+      if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && !confirmedCoords && !geoCoords) {
+        alert("Debes confirmar la ubicacion exacta para delivery.");
+        setLoading(false);
+        return;
+      }
+
+      const finalCoords = confirmedCoords || geoCoords || null;
+      const finalZone = tipoPedido === "delivery"
+        ? resolveMatchingZone(localInfo?.delivery_zones || [], finalCoords)
+        : null;
+
+      if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && !finalZone) {
+        alert("La ubicacion esta fuera de la zona de reparto de este local.");
+        setLoading(false);
+        return;
+      }
+
       const productosCliente = state.items.map((item) => ({
         nombre: item.nombre,
         varianteId: item.varianteId || null,
@@ -554,6 +632,7 @@ const Checkout = () => {
         cliente_email: cliente.correo || user?.email || "sincorreo",
         cliente_nombre: cliente.nombre,
         cliente_direccion: cliente.direccion || "",
+        cliente_coords: finalCoords,
         cliente_telefono: cliente.telefono,
         nota_efectivo: metodoPago === "efectivo" ? notaEfectivo.trim() : "",
         local: localId || null,
@@ -576,12 +655,15 @@ const Checkout = () => {
         hora_retiro: tipoPedido === "retiro" ? horaRetiro : "",
         cliente: {
           ...cliente,
+          coords: finalCoords,
         },
         nota_efectivo: metodoPago === "efectivo" ? notaEfectivo.trim() : "",
         productos: productosCliente,
         total,
         local: localId || null,
         local_nombre: localNombre,
+        cliente_coords: finalCoords,
+        delivery_zone_name: finalZone?.name || "",
       };
 
       const prev = JSON.parse(localStorage.getItem("ventas_local") || "[]");
@@ -604,6 +686,24 @@ const Checkout = () => {
     setLoading(true);
 
     try {
+      const confirmedCoords = await asegurarCoordenadasDelivery();
+      if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && !confirmedCoords && !geoCoords) {
+        alert("Debes confirmar la ubicacion exacta para delivery.");
+        setLoading(false);
+        return;
+      }
+
+      const finalCoords = confirmedCoords || geoCoords || null;
+      const finalZone = tipoPedido === "delivery"
+        ? resolveMatchingZone(localInfo?.delivery_zones || [], finalCoords)
+        : null;
+
+      if (tipoPedido === "delivery" && hasConfiguredDeliveryZones && !finalZone) {
+        alert("La ubicacion esta fuera de la zona de reparto de este local.");
+        setLoading(false);
+        return;
+      }
+
       const response = await api.post("/pagos/crear-sesion", {
         order: {
           local: localId || null,
@@ -614,6 +714,7 @@ const Checkout = () => {
             telefono: cliente.telefono,
             direccion: cliente.direccion || "",
             correo: cliente.correo || user?.email || "",
+            coords: finalCoords,
           },
           items: state.items.map((item) => ({
             productoId: item._id,
@@ -640,6 +741,30 @@ const Checkout = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (tipoPedido !== "delivery") {
+      setZoneWarning("");
+      return;
+    }
+
+    if (!hasConfiguredDeliveryZones) {
+      setZoneWarning("");
+      return;
+    }
+
+    if (!geoCoords) {
+      setZoneWarning("Este local valida delivery por zona. Debes confirmar la ubicacion exacta.");
+      return;
+    }
+
+    if (!matchingZone) {
+      setZoneWarning("Tu ubicacion esta fuera de la zona de reparto de este local.");
+      return;
+    }
+
+    setZoneWarning(`Cobertura disponible en: ${matchingZone.name}`);
+  }, [tipoPedido, hasConfiguredDeliveryZones, geoCoords, matchingZone]);
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto">
@@ -771,6 +896,15 @@ const Checkout = () => {
                 {geoCoords && (
                   <p className="text-xs text-gray-500 mt-1">
                     Sugerencias cercanas a tu ubicacion actual.
+                  </p>
+                )}
+                {zoneWarning && (
+                  <p
+                    className={`text-xs mt-1 ${
+                      matchingZone ? "text-green-700" : "text-red-600"
+                    }`}
+                  >
+                    {zoneWarning}
                   </p>
                 )}
                 {mostrarMapa && mapsReady && (
