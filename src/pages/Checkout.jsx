@@ -88,6 +88,7 @@ const Checkout = () => {
   const sessionTokenRef = useRef(null);
   const placesContainerRef = useRef(null);
   const mapContainerRef = useRef(null);
+  const mapHostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const debounceDireccionRef = useRef(null);
@@ -316,8 +317,10 @@ const Checkout = () => {
     if (!window.google?.maps) return;
 
     const center = geoCoords || { lat: -33.4489, lng: -70.6693 };
+    const needsNewMap = !mapRef.current || mapHostRef.current !== mapContainerRef.current;
 
-    if (!mapRef.current) {
+    if (needsNewMap) {
+      mapHostRef.current = mapContainerRef.current;
       mapRef.current = new window.google.maps.Map(mapContainerRef.current, {
         center,
         zoom: geoCoords ? 17 : 14,
@@ -349,10 +352,10 @@ const Checkout = () => {
       return;
     }
 
-    if (markerRef.current && geoCoords) {
-      markerRef.current.setPosition(geoCoords);
-      mapRef.current.setCenter(geoCoords);
+    if (markerRef.current) {
+      markerRef.current.setPosition(center);
     }
+    mapRef.current.setCenter(center);
   }, [tipoPedido, mostrarMapa, mapsReady, geoCoords]);
 
   const seleccionarSugerenciaDireccion = (sugerencia) => {
