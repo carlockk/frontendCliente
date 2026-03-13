@@ -92,6 +92,7 @@ const Checkout = () => {
   const markerRef = useRef(null);
   const debounceDireccionRef = useRef(null);
   const isMountedRef = useRef(true);
+  const skipNextAddressLookupRef = useRef(false);
 
   const handleInput = (e) => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
@@ -102,6 +103,10 @@ const Checkout = () => {
     setZoneWarning("");
   };
   const limpiarSugerenciasDireccion = () => {
+    if (debounceDireccionRef.current) {
+      clearTimeout(debounceDireccionRef.current);
+      debounceDireccionRef.current = null;
+    }
     setSugerenciasDireccion([]);
     setBuscandoDireccion(false);
   };
@@ -124,6 +129,7 @@ const Checkout = () => {
           ? results[0].formatted_address
           : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
+      skipNextAddressLookupRef.current = true;
       setCliente((prev) => ({ ...prev, direccion }));
       setBuscandoDireccion(true);
       obtenerPrediccionesDireccion(direccion, { coords: nextCoords || { lat, lng } });
@@ -288,6 +294,11 @@ const Checkout = () => {
       return;
     }
 
+    if (skipNextAddressLookupRef.current) {
+      skipNextAddressLookupRef.current = false;
+      return;
+    }
+
     if (debounceDireccionRef.current) {
       clearTimeout(debounceDireccionRef.current);
     }
@@ -368,6 +379,7 @@ const Checkout = () => {
             ? place?.formatted_address || place?.name || sugerencia.texto
             : sugerencia.texto;
 
+        skipNextAddressLookupRef.current = true;
         setCliente((prev) => ({ ...prev, direccion: finalAddress || prev.direccion }));
         if (placeCoords) {
           setGeoCoords(placeCoords);
@@ -418,6 +430,7 @@ const Checkout = () => {
             );
 
             if (confirma) {
+              skipNextAddressLookupRef.current = true;
               setCliente((prev) => ({ ...prev, direccion }));
               setBuscandoDireccion(true);
               obtenerPrediccionesDireccion(direccion, { coords: { lat, lng } });
