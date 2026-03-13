@@ -44,8 +44,15 @@ const getPaymentOptions = (localInfo) => {
       label: "Efectivo",
       enabled: pagos.efectivo !== false,
     },
+    {
+      value: "transferencia",
+      label: "Transferencia bancaria",
+      enabled: pagos.transferencia === true,
+    },
   ].filter((option) => option.enabled);
 };
+
+const getTransferAccount = (localInfo) => localInfo?.pagos_web?.transferencia_datos || {};
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -69,11 +76,13 @@ const Checkout = () => {
   const [geoCoords, setGeoCoords] = useState(null);
   const [mostrarMapa, setMostrarMapa] = useState(false);
   const [zoneWarning, setZoneWarning] = useState("");
+  const [transferInfoOpen, setTransferInfoOpen] = useState(false);
 
   const availableDeliveryOptions = getDeliveryOptions(localInfo);
   const availablePaymentOptions = getPaymentOptions(localInfo);
   const hasDeliveryOptions = availableDeliveryOptions.length > 0;
   const hasPaymentOptions = availablePaymentOptions.length > 0;
+  const transferAccount = getTransferAccount(localInfo);
 
   const [cliente, setCliente] = useState({
     nombre: "",
@@ -219,10 +228,14 @@ const Checkout = () => {
 
     const isCurrentEnabled = availablePaymentOptions.some((option) => option.value === metodoPago);
     if (!isCurrentEnabled) {
-      setMetodoPago("");
+      setMetodoPago(availablePaymentOptions.length === 1 ? availablePaymentOptions[0].value : "");
       setTipoPagoEfectivo("");
     }
   }, [availablePaymentOptions, hasPaymentOptions, metodoPago]);
+
+  useEffect(() => {
+    setTransferInfoOpen(metodoPago === "transferencia");
+  }, [metodoPago]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -550,6 +563,17 @@ const Checkout = () => {
         case "efectivo":
           if (!tipoPagoEfectivo) {
             alert("Selecciona dónde pagarás el efectivo.");
+            return false;
+          }
+          break;
+        case "transferencia":
+          if (
+            !transferAccount?.nombre ||
+            !transferAccount?.rut ||
+            !transferAccount?.numero_cuenta ||
+            !transferAccount?.correo
+          ) {
+            alert("Este local no tiene completos los datos bancarios para transferencia.");
             return false;
           }
           break;
@@ -1035,6 +1059,26 @@ const Checkout = () => {
               </div>
             )}
 
+            {metodoPago === "transferencia" && (
+              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">Pago por transferencia</p>
+                    <p className="text-xs text-amber-800">
+                      Revisa los datos bancarios antes de confirmar tu pedido.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTransferInfoOpen(true)}
+                    className="shrink-0 rounded border border-amber-300 bg-white px-3 py-1.5 text-xs hover:bg-amber-100"
+                  >
+                    Ver datos
+                  </button>
+                </div>
+              </div>
+            )}
+
             {metodoPago === "online" ? (
               <button
                 onClick={handlePagarConWebpay}
@@ -1055,6 +1099,58 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {transferInfoOpen && metodoPago === "transferencia" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Datos para transferencia</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Usa estos datos para transferir y luego confirma el pedido.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTransferInfoOpen(false)}
+                className="text-xl leading-none text-gray-400 hover:text-gray-700"
+                aria-label="Cerrar datos bancarios"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm text-gray-800">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Nombre</p>
+                <p className="font-medium">{transferAccount?.nombre || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">RUT</p>
+                <p className="font-medium">{transferAccount?.rut || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Numero de cuenta</p>
+                <p className="font-medium">{transferAccount?.numero_cuenta || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Correo</p>
+                <p className="font-medium">{transferAccount?.correo || "-"}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setTransferInfoOpen(false)}
+                className="rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-black"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
